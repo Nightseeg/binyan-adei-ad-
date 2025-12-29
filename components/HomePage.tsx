@@ -17,37 +17,37 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
                 </div>
 
                 {/* Main Heading */}
-                <h1 className="text-7xl md:text-9xl font-serif font-bold tracking-tight mb-2 text-wedding-navy drop-shadow-sm leading-none">
+                <h1 className="text-4xl sm:text-7xl md:text-9xl font-serif font-bold tracking-tight mb-2 text-wedding-navy drop-shadow-sm leading-none pt-12 md:pt-0">
                     Binyan Adei Ad
                 </h1>
-                <div className="text-sm md:text-lg font-sans font-bold text-wedding-gold/60 uppercase tracking-[0.3em] mb-8">
+                <div className="text-[10px] md:text-lg font-sans font-bold text-wedding-gold/60 uppercase tracking-[0.2em] md:tracking-[0.3em] mb-6 md:mb-8">
                     by Torat Yaacov
                 </div>
 
                 {/* Subtitle with lines */}
-                <div className="flex items-center justify-center gap-4 mb-16">
-                    <div className="h-px bg-wedding-gold w-12 md:w-24 opacity-60"></div>
-                    <p className="text-2xl md:text-3xl text-wedding-text font-light tracking-widest uppercase" style={{ letterSpacing: '0.2em' }}>
+                <div className="flex items-center justify-center gap-2 md:gap-4 mb-12 md:mb-16">
+                    <div className="hidden xs:block h-px bg-wedding-gold w-8 md:w-24 opacity-60"></div>
+                    <p className="text-lg sm:text-2xl md:text-3xl text-wedding-text font-light tracking-wider md:tracking-widest uppercase px-2">
                         Le Shidduch d'Excellence
                     </p>
-                    <div className="h-px bg-wedding-gold w-12 md:w-24 opacity-60"></div>
+                    <div className="hidden xs:block h-px bg-wedding-gold w-8 md:w-24 opacity-60"></div>
                 </div>
 
                 {/* Actions */}
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-8">
                     <button
                         onClick={() => onNavigate('register')}
-                        className="w-full sm:w-auto px-12 py-5 bg-wedding-navy text-white text-lg font-bold rounded-full hover:bg-opacity-90 transition-all duration-300 flex items-center justify-center gap-3 shadow-xl hover:shadow-2xl hover:-translate-y-1 border border-wedding-navy"
+                        className="w-full sm:w-auto px-8 md:px-12 py-4 md:py-5 bg-wedding-navy text-white text-base md:text-lg font-bold rounded-full hover:bg-opacity-90 transition-all duration-300 flex items-center justify-center gap-3 shadow-xl hover:shadow-2xl hover:-translate-y-1 border border-wedding-navy"
                     >
                         Créer mon Profil
-                        <ArrowRight className="w-5 h-5" />
+                        <ArrowRight className="w-4 h-4 md:w-5 md:h-5" />
                     </button>
 
                     <button
                         onClick={() => onNavigate('candidate-login')}
-                        className="w-full sm:w-auto px-12 py-5 bg-white/80 backdrop-blur-sm text-wedding-navy border border-wedding-navy/20 text-lg font-bold rounded-full hover:bg-white hover:border-wedding-gold transition-all duration-300 flex items-center justify-center gap-3 shadow-md hover:shadow-xl"
+                        className="w-full sm:w-auto px-8 md:px-12 py-4 md:py-5 bg-white/80 backdrop-blur-sm text-wedding-navy border border-wedding-navy/20 text-base md:text-lg font-bold rounded-full hover:bg-white hover:border-wedding-gold transition-all duration-300 flex items-center justify-center gap-3 shadow-md hover:shadow-xl"
                     >
-                        <LogIn className="w-5 h-5" />
+                        <LogIn className="w-4 h-4 md:w-5 md:h-5" />
                         Mon Compte
                     </button>
                 </div>
@@ -97,9 +97,10 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
                     </div>
                 </div>
 
-                <div className="mt-20 text-center italic text-wedding-navy/40 text-xs tracking-widest uppercase font-bold">
+                <div className="mt-12 md:mt-20 text-center italic text-wedding-navy/40 text-[10px] md:text-xs tracking-widest uppercase font-bold">
                     Sous la direction halakhique de nos maîtres
                 </div>
+
             </section>
         </div>
     );

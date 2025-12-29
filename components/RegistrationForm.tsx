@@ -55,15 +55,15 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSave, onCancel, i
       case 2:
         return !!(formData.fatherName && formData.motherName && formData.fatherPhone && formData.motherPhone && isValidPhone(formData.fatherPhone!) && isValidPhone(formData.motherPhone!));
       case 3:
-        return !!(formData.schoolCareer && formData.yeshivaKtana && formData.yeshivaGdola && formData.currentOccupation);
+        return !!(formData.primarySchool && formData.middleSchool && formData.highSchool && formData.yeshivaKtana && formData.yeshivaGdola && formData.currentOccupation);
       case 4:
-        return !!(formData.ambitionCareer && formData.ambitionLocation && formData.ambitions && formData.community);
+        return !!(formData.ambitionCareer && formData.ambitionLocation && (formData.ambitions || !formData.ambitionCareer) && (formData.community || !formData.ambitionLocation));
       case 5:
         return !!(formData.selfDescription && formData.isSmoking && formData.personalTraits && formData.personalClothing && formData.personalPhone);
       case 6:
         return !!(formData.searchFamily && formData.searchClothing && formData.searchPhone && formData.searchTraits && formData.searchPriorities && formData.lookingFor);
       case 7:
-        return !!(formData.email && formData.accessCode && isValidEmail(formData.email));
+        return !!(formData.email && formData.accessCode && isValidEmail(formData.email) && formData.ravYeshiva && formData.ravKehila);
       default:
         return false;
     }
@@ -130,9 +130,9 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSave, onCancel, i
     return age;
   };
 
-  const inputClass = "mt-1 block w-full rounded-2xl border-2 border-wedding-navy/10 bg-white px-6 py-4 text-wedding-navy placeholder:text-wedding-navy/40 focus:border-wedding-gold/50 focus:ring-4 focus:ring-wedding-gold/5 transition-all duration-300 font-medium text-base shadow-sm";
-  const areaClass = "mt-1 block w-full rounded-2xl border-2 border-wedding-navy/10 bg-white px-6 py-5 text-wedding-navy placeholder:text-wedding-navy/40 focus:border-wedding-gold/50 focus:ring-4 focus:ring-wedding-gold/5 transition-all duration-300 font-medium text-base shadow-sm resize-none";
-  const labelClass = "block text-[13px] font-bold text-wedding-navy/80 uppercase tracking-[0.15em] mb-2.5 ml-1";
+  const inputClass = "mt-1 block w-full rounded-2xl border-2 border-wedding-navy/10 bg-white px-4 md:px-6 py-3.5 md:py-4 text-wedding-navy placeholder:text-wedding-navy/40 focus:border-wedding-gold/50 focus:ring-4 focus:ring-wedding-gold/5 transition-all duration-300 font-medium text-sm md:text-base shadow-sm";
+  const areaClass = "mt-1 block w-full rounded-2xl border-2 border-wedding-navy/10 bg-white px-4 md:px-6 py-4 md:py-5 text-wedding-navy placeholder:text-wedding-navy/40 focus:border-wedding-gold/50 focus:ring-4 focus:ring-wedding-gold/5 transition-all duration-300 font-medium text-sm md:text-base shadow-sm resize-none";
+  const labelClass = "block text-[11px] md:text-[13px] font-bold text-wedding-navy/80 uppercase tracking-wider md:tracking-[0.15em] mb-2 md:mb-2.5 ml-1";
 
   const QCMGroup = ({ label, name, options, multi = true }: { label: string, name: string, options: string[], multi?: boolean }) => {
     const currentValues = (formData[name as keyof Profile] as string || '').split(',').filter(v => v);
@@ -180,41 +180,57 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSave, onCancel, i
   };
 
   return (
-    <div className="bg-white rounded-[2rem] shadow-2xl border border-wedding-navy/5 overflow-hidden max-w-[1400px] w-full mx-auto flex flex-col md:flex-row min-h-[850px] transition-all">
+    <div className="bg-white rounded-[2rem] shadow-2xl border border-wedding-navy/5 overflow-hidden max-w-[1400px] w-full mx-auto flex flex-col lg:flex-row min-h-[auto] lg:min-h-[850px] transition-all my-4 lg:my-0">
 
       {/* Sidebar Navigation */}
-      <div className="bg-wedding-navy text-white p-12 md:w-96 flex flex-col pt-20 relative overflow-hidden flex-shrink-0">
+      <div className="bg-wedding-navy text-white p-6 lg:p-12 lg:w-96 flex flex-col lg:pt-20 relative overflow-hidden flex-shrink-0">
         <div className="absolute top-0 left-0 w-full h-full opacity-5 pointer-events-none">
           <div className="absolute -top-24 -left-24 w-64 h-64 bg-wedding-gold rounded-full blur-[100px]"></div>
           <div className="absolute -bottom-24 -right-24 w-64 h-64 bg-wedding-gold rounded-full blur-[100px]"></div>
         </div>
 
         <div className="relative z-10 h-full flex flex-col">
-          <button onClick={onCancel} className="mb-10 flex items-center gap-2 text-white/50 hover:text-white transition-colors text-xs font-bold uppercase tracking-widest">
-            <ChevronLeft className="w-4 h-4 text-wedding-gold" /> Accueil
-          </button>
+          <div className="flex justify-between items-center lg:block">
+            <button onClick={onCancel} className="lg:mb-10 flex items-center gap-2 text-white/50 hover:text-white transition-colors text-xs font-bold uppercase tracking-widest leading-none">
+              <ChevronLeft className="w-4 h-4 text-wedding-gold" /> <span className="hidden lg:inline">Accueil</span>
+            </button>
+            <div className="lg:hidden text-[10px] font-bold text-wedding-gold uppercase tracking-[0.2em]">Étape {currentStep}/{STEPS.length}</div>
+          </div>
 
-          <h2 className="text-4xl font-serif font-bold mb-3 leading-tight">Lev Echad</h2>
-          <p className="text-white/40 text-[11px] font-bold uppercase tracking-[0.3em] mb-16 italic">Votre futur commence ici</p>
+          <div className="hidden lg:block">
+            <h2 className="text-4xl font-serif font-bold mb-3 leading-tight">Lev Echad</h2>
+            <p className="text-white/40 text-[11px] font-bold uppercase tracking-[0.3em] mb-16 italic">Votre futur commence ici</p>
+          </div>
 
-          <div className="space-y-4 flex-1">
-            {STEPS.map((step) => {
+          <div className="hidden lg:block space-y-4 flex-1">
+            {STEPS.map(step => {
               const isActive = currentStep === step.id;
               const isCompleted = currentStep > step.id;
+              const canClick = isCompleted || initialData || isActive;
+
               return (
-                <div key={step.id} className="flex items-start gap-5">
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-[11px] font-bold transition-all duration-500
-                            ${isActive ? 'bg-wedding-gold text-wedding-navy shadow-[0_0_20px_rgba(212,175,55,0.4)] scale-110' :
-                      isCompleted ? 'bg-white/10 text-wedding-gold' : 'text-white/20'}`}>
-                    {isCompleted ? <Check className="w-4 h-4" /> : step.id}
+                <button
+                  key={step.id}
+                  onClick={() => {
+                    if (canClick) setCurrentStep(step.id);
+                  }}
+                  disabled={!canClick}
+                  className={`flex items-start gap-5 w-full text-left transition-all duration-500 ${isActive ? 'opacity-100 translate-x-2' : canClick ? 'opacity-50 hover:opacity-100' : 'opacity-30 cursor-not-allowed'}`}
+                >
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm transition-all duration-500 ${isActive ? 'bg-wedding-gold text-wedding-navy shadow-xl shadow-wedding-gold/20 scale-110 rotate-3' : 'bg-white/5 text-white'}`}>
+                    {isCompleted ? <Check className="w-5 h-5" /> : step.id}
                   </div>
-                  <div className="pt-0.5">
-                    <h3 className={`font-bold text-[11px] uppercase tracking-widest transition-colors ${isActive ? 'text-white' : 'text-white/20'}`}>{step.title}</h3>
-                    {isActive && <p className="text-[10px] text-wedding-gold italic mt-1 animate-pulse">{step.description}</p>}
+                  <div>
+                    <div className="text-xs font-bold uppercase tracking-[0.2em]">{step.title}</div>
+                    <div className="text-[10px] text-white/40 font-medium uppercase tracking-widest mt-0.5">{step.description}</div>
                   </div>
-                </div>
+                </button>
               );
             })}
+          </div>
+
+          <div className="lg:hidden mt-4 bg-white/10 h-1 rounded-full overflow-hidden">
+            <div className="bg-wedding-gold h-full transition-all duration-1000" style={{ width: `${(currentStep / STEPS.length) * 100}%` }}></div>
           </div>
 
           {!initialData && (
@@ -229,8 +245,8 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSave, onCancel, i
       </div>
 
       {/* Form Content */}
-      <div className="flex-1 flex flex-col bg-slate-50/30">
-        <div className="flex-1 relative p-10 md:p-16 overflow-y-auto custom-scrollbar">
+      <div className="flex-1 flex flex-col bg-slate-50 relative overflow-hidden">
+        <div className="p-6 md:p-12 lg:p-16 flex-1 flex flex-col">
           <AnimatePresence mode='wait' custom={currentStep}>
             <motion.div
               key={currentStep}
@@ -372,8 +388,16 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSave, onCancel, i
                   <div className="space-y-8">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div>
-                        <label className={labelClass}>École Primaire / Collège / Lycée *</label>
-                        <input type="text" name="schoolCareer" value={formData.schoolCareer || ''} onChange={handleChange} className={inputClass} placeholder="Nom des établissements" />
+                        <label className={labelClass}>École Primaire *</label>
+                        <input type="text" name="primarySchool" value={formData.primarySchool || ''} onChange={handleChange} className={inputClass} placeholder="Nom de l'école" />
+                      </div>
+                      <div>
+                        <label className={labelClass}>Collège *</label>
+                        <input type="text" name="middleSchool" value={formData.middleSchool || ''} onChange={handleChange} className={inputClass} placeholder="Nom du collège" />
+                      </div>
+                      <div>
+                        <label className={labelClass}>Lycée *</label>
+                        <input type="text" name="highSchool" value={formData.highSchool || ''} onChange={handleChange} className={inputClass} placeholder="Nom du lycée" />
                       </div>
                       <div>
                         <label className={labelClass}>Yéchiva Ktana / Séminaire *</label>
@@ -498,24 +522,54 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSave, onCancel, i
                       </div>
                     </div>
 
-                    <QCMGroup
-                      label="Caractère & Personnalité *"
-                      name="personalTraits"
-                      options={["Sociable", "Réservé", "Drôle", "Calme", "Ambitieux", "Studieux", "Énergique"]}
-                    />
+                    <div className="space-y-6">
+                      <QCMGroup
+                        label="Caractère & Personnalité *"
+                        name="personalTraits"
+                        options={["Sociable", "Réservé", "Drôle", "Calme", "Ambitieux", "Studieux", "Énergique"]}
+                      />
+                      <textarea
+                        name="personalTraitsDetails"
+                        value={formData.personalTraitsDetails || ''}
+                        onChange={handleChange}
+                        rows={2}
+                        className={areaClass}
+                        placeholder="Précisions ou Autre caractère (Facultatif)..."
+                      />
+                    </div>
 
-                    <QCMGroup
-                      label="Style vestimentaire (Ben Azmanim) *"
-                      name="personalClothing"
-                      options={["Chemise", "Kova 'Halifa", "Style Détente"]}
-                    />
+                    <div className="space-y-6">
+                      <QCMGroup
+                        label="Style vestimentaire (Ben Azmanim) *"
+                        name="personalClothing"
+                        options={["Chemise", "Kova 'Halifa", "Style Détente"]}
+                      />
+                      <textarea
+                        name="personalClothingDetails"
+                        value={formData.personalClothingDetails || ''}
+                        onChange={handleChange}
+                        rows={2}
+                        className={areaClass}
+                        placeholder="Précisions ou Autre style (Facultatif)..."
+                      />
+                    </div>
 
-                    <QCMGroup
-                      label="Type de téléphone *"
-                      name="personalPhone"
-                      options={["Neuf touches", "Xiaomi", "Smartphone", "Smartphone filtré"]}
-                      multi={false}
-                    />
+                    <div className="space-y-6">
+                      <QCMGroup
+                        label="Type de téléphone *"
+                        name="personalPhone"
+                        options={["Neuf touches", "Xiaomi", "Smartphone", "Smartphone filtré"]}
+                        multi={false}
+                      />
+                      <textarea
+                        name="personalPhoneDetails"
+                        value={formData.personalPhoneDetails || ''}
+                        onChange={handleChange}
+                        rows={2}
+                        className={areaClass}
+                        placeholder="Précisions ou Autre téléphone (Facultatif)..."
+                      />
+                    </div>
 
                     <div>
                       <label className={labelClass}>Quelques mots sur vous *</label>
@@ -545,35 +599,85 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSave, onCancel, i
                   </div>
 
                   <div className="space-y-12">
-                    <QCMGroup
-                      label="Milieu familial recherché *"
-                      name="searchFamily"
-                      options={["Fille de maison pratiquante", "Milieu Yéchiva", "Ba’alat téchouva"]}
-                    />
+                    <div className="space-y-6">
+                      <QCMGroup
+                        label="Milieu familial recherché *"
+                        name="searchFamily"
+                        options={["Fille de maison pratiquante", "Milieu Yéchiva", "Ba’alat téchouva"]}
+                      />
+                      <textarea
+                        name="searchFamilyDetails"
+                        value={formData.searchFamilyDetails || ''}
+                        onChange={handleChange}
+                        rows={2}
+                        className={areaClass}
+                        placeholder="Précisions ou Autre milieu (Facultatif)..."
+                      />
+                    </div>
 
-                    <QCMGroup
-                      label="Style vestimentaire recherché *"
-                      name="searchClothing"
-                      options={["Classique", "Strict", "Moderne"]}
-                    />
+                    <div className="space-y-6">
+                      <QCMGroup
+                        label="Style vestimentaire recherché *"
+                        name="searchClothing"
+                        options={["Classique", "Strict", "Moderne"]}
+                      />
+                      <textarea
+                        name="searchClothingDetails"
+                        value={formData.searchClothingDetails || ''}
+                        onChange={handleChange}
+                        rows={2}
+                        className={areaClass}
+                        placeholder="Précisions ou Autre style (Facultatif)..."
+                      />
+                    </div>
 
-                    <QCMGroup
-                      label="Type de téléphone (Pour elle) *"
-                      name="searchPhone"
-                      options={["Smartphone", "Neuf touches", "À discuter"]}
-                    />
+                    <div className="space-y-6">
+                      <QCMGroup
+                        label="Type de téléphone (Pour elle) *"
+                        name="searchPhone"
+                        options={["Smartphone", "Neuf touches", "À discuter"]}
+                      />
+                      <textarea
+                        name="searchPhoneDetails"
+                        value={formData.searchPhoneDetails || ''}
+                        onChange={handleChange}
+                        rows={2}
+                        className={areaClass}
+                        placeholder="Précisions ou Autre téléphone (Facultatif)..."
+                      />
+                    </div>
 
-                    <QCMGroup
-                      label="Caractère & Personnalité recherchés *"
-                      name="searchTraits"
-                      options={["Douce", "Joyeuse", "Sérieuse", "Simple", "Dynamique", "Organisée", "Calme", "Leader"]}
-                    />
+                    <div className="space-y-6">
+                      <QCMGroup
+                        label="Caractère & Personnalité recherchés *"
+                        name="searchTraits"
+                        options={["Douce", "Joyeuse", "Sérieuse", "Simple", "Dynamique", "Organisée", "Calme", "Leader"]}
+                      />
+                      <textarea
+                        name="searchTraitsDetails"
+                        value={formData.searchTraitsDetails || ''}
+                        onChange={handleChange}
+                        rows={2}
+                        className={areaClass}
+                        placeholder="Précisions ou Autre caractère (Facultatif)..."
+                      />
+                    </div>
 
-                    <QCMGroup
-                      label="Ce qui vous tient le plus à cœur *"
-                      name="searchPriorities"
-                      options={["Physique", "Tsniout", "Téléphone Cacher", "Caractère"]}
-                    />
+                    <div className="space-y-6">
+                      <QCMGroup
+                        label="Ce qui vous tient le plus à cœur *"
+                        name="searchPriorities"
+                        options={["Physique", "Tsniout", "Téléphone Cacher", "Caractère"]}
+                      />
+                      <textarea
+                        name="searchPrioritiesDetails"
+                        value={formData.searchPrioritiesDetails || ''}
+                        onChange={handleChange}
+                        rows={2}
+                        className={areaClass}
+                        placeholder="Précisions ou Autres priorités (Facultatif)..."
+                      />
+                    </div>
 
                     <div>
                       <label className={labelClass}>Précisions sur votre recherche *</label>
@@ -603,19 +707,21 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSave, onCancel, i
                   </div>
 
                   <div className="space-y-8">
-                    <div>
-                      <label className={labelClass}>Contacts Rabbanims</label>
-                      <div className="bg-wedding-navy/[0.02] p-4 rounded-3xl border border-wedding-navy/5 mb-4">
-                        <p className="text-[10px] text-wedding-navy/50 font-medium italic">Donne les numéros d'un Rav de la Yechiva et d'un Rav de la kehila</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                      <div>
+                        <label className={labelClass}>Rav de la Yéchiva *</label>
+                        <div className="relative">
+                          <User className="w-4 h-4 text-wedding-gold absolute left-4 top-1/2 -translate-y-1/2" />
+                          <input type="text" name="ravYeshiva" value={formData.ravYeshiva || ''} onChange={handleChange} className={`${inputClass} pl-12`} placeholder="Nom et Téléphone" />
+                        </div>
                       </div>
-                      <textarea
-                        name="rabbanimContacts"
-                        value={formData.rabbanimContacts || ''}
-                        onChange={handleChange}
-                        rows={4}
-                        className={areaClass}
-                        placeholder="Ex: Rav Yechiva ..., Tél: ... / Rav Kehila ..., Tél: ..."
-                      />
+                      <div>
+                        <label className={labelClass}>Rav de la Kehila *</label>
+                        <div className="relative">
+                          <Users className="w-4 h-4 text-wedding-gold absolute left-4 top-1/2 -translate-y-1/2" />
+                          <input type="text" name="ravKehila" value={formData.ravKehila || ''} onChange={handleChange} className={`${inputClass} pl-12`} placeholder="Nom et Téléphone" />
+                        </div>
+                      </div>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-6 border-t border-wedding-navy/5">

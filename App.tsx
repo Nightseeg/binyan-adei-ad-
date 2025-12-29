@@ -16,14 +16,80 @@ import { Profile, Gender, ReligiousLevel } from './types';
 import { api } from './services/dataService';
 
 const App: React.FC = () => {
-  const [view, setView] = useState<'home' | 'register' | 'dashboard' | 'shadchans' | 'donate' | 'candidate-login' | 'candidate-portal' | 'registration-success'>('home');
+  const [view, setView] = useState<'home' | 'register' | 'dashboard' | 'shadchans' | 'donate' | 'candidate-login' | 'candidate-portal' | 'registration-success'>(() => {
+    const saved = localStorage.getItem('app_view');
+    return (saved as any) || 'home';
+  });
+
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [editingProfile, setEditingProfile] = useState<Profile | undefined>(undefined);
+
   const [currentUser, setCurrentUser] = useState<Profile | undefined>(undefined);
-  const [isLoading, setIsLoading] = useState(true); // New loading state
+
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    return localStorage.getItem('isAuthenticated') === 'true';
+  });
+
+  const [isLoading, setIsLoading] = useState(true);
   // Dark mode removed
   const darkMode = false;
   const toggleDarkMode = () => { };
+
+  // Persistence Effects
+  useEffect(() => {
+    localStorage.setItem('app_view', view);
+  }, [view]);
+
+  useEffect(() => {
+    if (currentUser) {
+      // Store only ID to avoid QuotaExceededError/Base64 issues
+      localStorage.setItem('currentUserId', currentUser.id);
+    } else {
+      localStorage.removeItem('currentUserId');
+    }
+  }, [currentUser]);
+
+  // Restore user from ID
+  useEffect(() => {
+    const restoreUser = async () => {
+      const storedId = localStorage.getItem('currentUserId');
+      if (storedId && !currentUser) {
+        setIsLoading(true);
+        try {
+          // Find locally first (fastest)
+          const localProfile = profiles.find(p => p.id === storedId);
+          if (localProfile) {
+            setCurrentUser(localProfile);
+          } else {
+            // If not in local profiles (e.g. direct load), fetch fresh
+            // api.getProfileById would be ideal but getProfiles logic is already complex
+            // Re-fetching all profiles is heavy but ensures consistency for now
+            const data = await api.getProfiles();
+            setProfiles(data);
+            const found = data.find(p => p.id === storedId);
+            if (found) setCurrentUser(found);
+          }
+        } catch (error) {
+          console.error("Failed to restore session", error);
+          localStorage.removeItem('currentUserId');
+        } finally {
+          setIsLoading(false);
+        }
+      }
+    };
+    restoreUser();
+  }, [profiles.length]); // depend on profiles to ensuring lookup works once profiles loaded
+
+  useEffect(() => {
+    localStorage.setItem('isAuthenticated', String(isAuthenticated));
+  }, [isAuthenticated]);
+
+  // Safety Redirect
+  useEffect(() => {
+    if (view === 'candidate-portal' && !currentUser) {
+      setView('candidate-login');
+    }
+  }, [view, currentUser]);
 
   // Load profiles from API
   useEffect(() => {
@@ -96,7 +162,7 @@ const App: React.FC = () => {
   };
 
   const [pin, setPin] = useState('');
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  // isAuthenticated state moved to top
 
   const handleDeleteProfiles = async (idsToDelete: string[]) => {
     if (!window.confirm(`Voulez-vous vraiment supprimer ${idsToDelete.length} profil(s) ?`)) return;
@@ -285,6 +351,7 @@ const App: React.FC = () => {
                         profiles={profiles}
                         onUpdateProfile={handleUpdateProfile}
                         onDeleteProfiles={handleDeleteProfiles}
+                        onLogout={() => { setIsAuthenticated(false); setView('home'); }}
                       />
                     </div>
                   </motion.div>

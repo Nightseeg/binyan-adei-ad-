@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Profile, Gender, MatchSuggestion, ReligiousLevel, Match, MatchStatus, Task, MatchingCriteria } from '../types';
 import { findMatchesForProfile } from '../services/matchingEngine';
-import { Users, Sparkles, Loader2, Phone, Search, MapPin, Briefcase, Ruler, Heart, X, ArrowUpDown, Kanban, LayoutGrid, Star, Save, Plus, Tag, CheckSquare, FileText, Check, Trash2, Copy, Printer, Activity, Bell, Clock, Square, CheckCircle2, ChevronLeft, ChevronRight, Eye, EyeOff, Upload, Zap, Mail, MessageCircle, Send, Settings } from 'lucide-react';
+import { Users, User, Sparkles, Loader2, Phone, Search, MapPin, Briefcase, Ruler, Heart, X, ArrowUpDown, Kanban, LayoutGrid, Star, Save, Plus, Tag, CheckSquare, FileText, Check, Trash2, Copy, Printer, Activity, Bell, Clock, Square, CheckCircle2, ChevronLeft, ChevronRight, Eye, EyeOff, Upload, Zap, Mail, MessageCircle, Send, Settings, Menu, LogOut } from 'lucide-react';
 import MatchPipeline from './MatchPipeline';
 import { v4 as uuidv4 } from 'uuid';
 import { api } from '../services/dataService';
@@ -11,8 +11,9 @@ import { Confetti } from './Confetti';
 
 interface ShadchanDashboardProps {
   profiles: Profile[];
-  onUpdateProfile?: (profile: Profile) => void;
-  onDeleteProfiles?: (ids: string[]) => void;
+  onUpdateProfile: (p: Profile) => void;
+  onDeleteProfiles: (ids: string[]) => void;
+  onLogout: () => void;
 }
 
 interface ActivityLog {
@@ -25,7 +26,7 @@ interface ActivityLog {
 type SortOption = 'newest' | 'oldest' | 'age_asc' | 'age_desc' | 'name_asc' | 'name_desc';
 type DashboardView = 'overview' | 'profiles' | 'pipeline' | 'tasks' | 'settings' | 'messages';
 
-const ShadchanDashboard: React.FC<ShadchanDashboardProps> = ({ profiles, onUpdateProfile, onDeleteProfiles }) => {
+const ShadchanDashboard: React.FC<ShadchanDashboardProps> = ({ profiles, onUpdateProfile, onDeleteProfiles, onLogout }) => {
   const [currentView, setCurrentView] = useState<DashboardView>('overview');
   const [selectedGender, setSelectedGender] = useState<Gender>(Gender.MALE);
   const [selectedProfile, setSelectedProfile] = useState<Profile | null>(null);
@@ -45,6 +46,8 @@ const ShadchanDashboard: React.FC<ShadchanDashboardProps> = ({ profiles, onUpdat
   const [messages, setMessages] = useState<any[]>([]);
   const [newMessageText, setNewMessageText] = useState('');
   const [unreadCount, setUnreadCount] = useState(0);
+  const [chatSearchQuery, setChatSearchQuery] = useState('');
+  const [idsWithMessages, setIdsWithMessages] = useState<string[]>([]);
 
   const fetchUnreadCount = async () => {
     try {
@@ -62,9 +65,19 @@ const ShadchanDashboard: React.FC<ShadchanDashboardProps> = ({ profiles, onUpdat
   }, []);
 
   useEffect(() => {
+    if (currentView === 'messages') {
+      api.getProfileIdsWithMessages().then(setIdsWithMessages).catch(console.error);
+    }
+  }, [currentView]);
+
+  useEffect(() => {
     if (currentView === 'messages' && chatProfile) {
       loadMessages(chatProfile.id);
       api.markMessagesAsRead(chatProfile.id).then(() => fetchUnreadCount());
+      // Refresh list of IDs with messages after viewing/sending?
+      if (!idsWithMessages.includes(chatProfile.id)) {
+        setIdsWithMessages(prev => [...prev, chatProfile.id]);
+      }
     }
   }, [currentView, chatProfile]);
 
@@ -123,6 +136,7 @@ const ShadchanDashboard: React.FC<ShadchanDashboardProps> = ({ profiles, onUpdat
 
 
   // Bulk Actions State
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [selectedProfileIds, setSelectedProfileIds] = useState<string[]>([]);
 
   // Activity Feed State
@@ -442,10 +456,12 @@ const ShadchanDashboard: React.FC<ShadchanDashboardProps> = ({ profiles, onUpdat
       completed: false,
       createdAt: Date.now()
     };
-    setTasks([...tasks, newTask]);
+    // Use functional update to ensure we have the latest state
+    setTasks(prev => [newTask, ...prev]);
     api.createTask(newTask).catch(err => {
-      console.error(err);
-      alert("Erreur lors de la sauvegarde : " + (err.message || err));
+      console.error("Failed to create task:", err);
+      showError("Erreur lors de la sauvegarde de la note");
+      // Rollback on error if needed, but for now just alert
     });
     setNewTaskText('');
   };
@@ -518,41 +534,45 @@ const ShadchanDashboard: React.FC<ShadchanDashboardProps> = ({ profiles, onUpdat
       <Confetti isActive={showConfetti} onComplete={() => setShowConfetti(false)} />
 
       {/* Sidebar Navigation */}
-      <aside className="w-48 bg-wedding-navy flex flex-col shrink-0 z-30 print:hidden relative overflow-hidden">
+      <aside className={`fixed lg:relative inset-y-0 left-0 w-60 bg-wedding-navy flex flex-col shrink-0 z-50 transition-transform duration-500 transform ${isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'} print:hidden overflow-hidden`}>
         {/* Decorative Background Elements */}
         <div className="absolute top-0 left-0 w-full h-full opacity-5 pointer-events-none">
           <div className="absolute -top-24 -left-24 w-64 h-64 bg-wedding-gold rounded-full blur-[100px]"></div>
           <div className="absolute top-1/2 -right-24 w-48 h-48 bg-wedding-rose rounded-full blur-[80px]"></div>
         </div>
 
-        {/* Logo Area */}
-        <div className="p-8 flex flex-col items-center gap-5 relative z-10">
-          <div className="w-16 h-16 bg-gradient-to-br from-wedding-gold to-yellow-600 rounded-2xl flex items-center justify-center shadow-2xl shadow-wedding-gold/20 transform hover:rotate-3 transition-transform duration-500 border border-white/10">
-            <Heart className="w-8 h-8 text-white" fill="currentColor" />
-          </div>
-          <div className="text-center">
-            <span className="font-serif font-bold text-xl tracking-luxury text-white block">BINYAN ADEI AD</span>
-            <span className="text-[9px] font-bold tracking-[0.3em] text-white/40 uppercase mt-1 block">Shidduch Connect</span>
-          </div>
+        {/* Close Button Mobile */}
+        <button
+          onClick={() => setIsMobileSidebarOpen(false)}
+          className="lg:hidden absolute top-6 right-6 text-white/40 hover:text-white transition-colors z-20"
+        >
+          <X className="w-6 h-6" />
+        </button>
+
+        {/* Logo Area - Compact */}
+        <div className="px-6 py-8 flex flex-col items-start relative z-10 w-full">
+          <span className="font-serif font-bold text-lg tracking-widest text-white block leading-none">BINYAN</span>
+          <span className="font-serif font-bold text-lg tracking-widest text-wedding-gold block leading-none mb-1">ADEI AD</span>
+          <div className="h-0.5 w-8 bg-white/20 rounded-full"></div>
         </div>
 
         {/* Navigation */}
         <nav className="flex-1 px-6 space-y-1.5 py-6">
           <p className="px-4 text-[10px] font-bold text-white/20 uppercase tracking-[0.2em] mb-4">Principal</p>
 
-          <button onClick={() => setCurrentView('overview')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 text-xs font-bold tracking-widest uppercase group relative overflow-hidden ${currentView === 'overview' ? 'bg-white text-wedding-navy shadow-xl' : 'text-white/60 hover:text-white hover:bg-white/5'}`}>
+          <button onClick={() => { setCurrentView('overview'); setIsMobileSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 text-xs font-bold tracking-widest uppercase group relative overflow-hidden ${currentView === 'overview' ? 'bg-white text-wedding-navy shadow-xl' : 'text-white/60 hover:text-white hover:bg-white/5'}`}>
             <Activity className={`w-5 h-5 transition-colors ${currentView === 'overview' ? 'text-wedding-navy' : 'text-wedding-gold group-hover:text-white'}`} />
             <span className="relative z-10">Vue d'ensemble</span>
             {currentView === 'overview' && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-wedding-gold rounded-r-full"></div>}
           </button>
 
-          <button onClick={() => setCurrentView('profiles')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 text-xs font-bold tracking-widest uppercase group relative overflow-hidden ${currentView === 'profiles' ? 'bg-white text-wedding-navy shadow-xl' : 'text-white/60 hover:text-white hover:bg-white/5'}`}>
+          <button onClick={() => { setCurrentView('profiles'); setIsMobileSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 text-xs font-bold tracking-widest uppercase group relative overflow-hidden ${currentView === 'profiles' ? 'bg-white text-wedding-navy shadow-xl' : 'text-white/60 hover:text-white hover:bg-white/5'}`}>
             <LayoutGrid className={`w-5 h-5 transition-colors ${currentView === 'profiles' ? 'text-wedding-navy' : 'text-wedding-gold group-hover:text-white'}`} />
             <span className="relative z-10">Candidats</span>
             {currentView === 'profiles' && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-wedding-gold rounded-r-full"></div>}
           </button>
 
-          <button onClick={() => setCurrentView('pipeline')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 text-xs font-bold tracking-widest uppercase group relative overflow-hidden ${currentView === 'pipeline' ? 'bg-white text-wedding-navy shadow-xl' : 'text-white/60 hover:text-white hover:bg-white/5'}`}>
+          <button onClick={() => { setCurrentView('pipeline'); setIsMobileSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 text-xs font-bold tracking-widest uppercase group relative overflow-hidden ${currentView === 'pipeline' ? 'bg-white text-wedding-navy shadow-xl' : 'text-white/60 hover:text-white hover:bg-white/5'}`}>
             <Kanban className={`w-5 h-5 transition-colors ${currentView === 'pipeline' ? 'text-wedding-navy' : 'text-wedding-gold group-hover:text-white'}`} />
             <span className="relative z-10">Pipeline</span>
             {currentView === 'pipeline' && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-wedding-gold rounded-r-full"></div>}
@@ -560,13 +580,13 @@ const ShadchanDashboard: React.FC<ShadchanDashboardProps> = ({ profiles, onUpdat
 
           <p className="px-4 text-[10px] font-bold text-white/20 uppercase tracking-[0.2em] mb-4 mt-8">Outils</p>
 
-          <button onClick={() => setCurrentView('tasks')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 text-xs font-bold tracking-widest uppercase group relative overflow-hidden ${currentView === 'tasks' ? 'bg-white text-wedding-navy shadow-xl' : 'text-white/60 hover:text-white hover:bg-white/5'}`}>
+          <button onClick={() => { setCurrentView('tasks'); setIsMobileSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 text-xs font-bold tracking-widest uppercase group relative overflow-hidden ${currentView === 'tasks' ? 'bg-white text-wedding-navy shadow-xl' : 'text-white/60 hover:text-white hover:bg-white/5'}`}>
             <CheckSquare className={`w-5 h-5 transition-colors ${currentView === 'tasks' ? 'text-wedding-navy' : 'text-wedding-gold group-hover:text-white'}`} />
             <span className="relative z-10">Notes</span>
             {currentView === 'tasks' && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-wedding-gold rounded-r-full"></div>}
           </button>
 
-          <button onClick={() => setCurrentView('messages')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 text-xs font-bold tracking-widest uppercase group relative overflow-hidden ${currentView === 'messages' ? 'bg-white text-wedding-navy shadow-xl' : 'text-white/60 hover:text-white hover:bg-white/5'}`}>
+          <button onClick={() => { setCurrentView('messages'); setIsMobileSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 text-xs font-bold tracking-widest uppercase group relative overflow-hidden ${currentView === 'messages' ? 'bg-white text-wedding-navy shadow-xl' : 'text-white/60 hover:text-white hover:bg-white/5'}`}>
             <div className="relative">
               <MessageCircle className={`w-5 h-5 transition-colors ${currentView === 'messages' ? 'text-wedding-navy' : 'text-wedding-gold group-hover:text-white'}`} />
               {unreadCount > 0 && <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full animate-ping"></span>}
@@ -578,43 +598,66 @@ const ShadchanDashboard: React.FC<ShadchanDashboardProps> = ({ profiles, onUpdat
             {currentView === 'messages' && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-wedding-gold rounded-r-full"></div>}
           </button>
 
-          <div className="mt-auto">
-            <button onClick={() => setCurrentView('settings')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 text-xs font-bold tracking-widest uppercase group relative overflow-hidden ${currentView === 'settings' ? 'bg-white text-wedding-navy shadow-xl' : 'text-white/40 hover:text-white hover:bg-white/5'}`}>
-              <Settings className={`w-5 h-5 transition-colors ${currentView === 'settings' ? 'text-wedding-navy' : 'text-wedding-gold group-hover:text-white'}`} />
+          <div className="mt-auto space-y-2">
+            <button onClick={() => { setCurrentView('settings'); setIsMobileSidebarOpen(false); }} className={`w-full flex items-center gap-3 px-5 py-3 rounded-xl transition-all duration-300 text-[11px] font-bold tracking-widest uppercase group relative overflow-hidden ${currentView === 'settings' ? 'bg-white text-wedding-navy shadow-xl' : 'text-white/40 hover:text-white hover:bg-white/5'}`}>
+              <Settings className={`w-4 h-4 transition-colors ${currentView === 'settings' ? 'text-wedding-navy' : 'text-wedding-gold group-hover:text-white'}`} />
               <span className="relative z-10">Paramètres</span>
-              {currentView === 'settings' && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-wedding-gold rounded-r-full"></div>}
+              {currentView === 'settings' && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-wedding-gold rounded-r-full"></div>}
+            </button>
+
+            <button onClick={onLogout} className="w-full flex items-center gap-3 px-5 py-3 rounded-xl transition-all duration-300 text-[11px] font-bold tracking-widest uppercase text-white/40 hover:text-red-300 hover:bg-white/5 group">
+              <LogOut className="w-4 h-4 text-wedding-gold group-hover:text-red-300 transition-colors" />
+              <span className="relative z-10">Déconnexion</span>
             </button>
           </div>
         </nav>
 
-        <div className="p-8 flex flex-col items-center gap-2 relative z-10 opacity-30">
-          <div className="text-[9px] font-bold text-white uppercase tracking-[0.3em]">Binyan Adei Ad v2.1</div>
+        <div className="px-6 py-4 flex flex-col items-start gap-1 relative z-10 opacity-20">
+          <div className="text-[8px] font-bold text-white uppercase tracking-[0.3em]">v2.1</div>
         </div>
       </aside>
+
+      {/* Overlay mobile */}
+      {
+        isMobileSidebarOpen && (
+          <div
+            className="fixed inset-0 bg-wedding-navy/40 backdrop-blur-sm z-40 lg:hidden"
+            onClick={() => setIsMobileSidebarOpen(false)}
+          />
+        )
+      }
 
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
         {/* Top Header */}
-        <header className="glass-nav h-16 px-8 flex items-center justify-between shrink-0 shadow-xl shadow-wedding-navy/5 z-20 print:hidden mx-6 mt-4 rounded-2xl border border-white/50">
-          <h2 className="font-serif font-bold text-2xl text-wedding-navy flex items-center gap-3">
-            {currentView === 'overview' && <><Activity className="w-6 h-6 text-wedding-gold" /> Vue d'Ensemble</>}
-            {currentView === 'profiles' && <><LayoutGrid className="w-6 h-6 text-wedding-gold" /> Base Candidats</>}
-            {currentView === 'pipeline' && <><Kanban className="w-6 h-6 text-wedding-gold" /> Pipeline des Matchs</>}
-            {currentView === 'tasks' && <><CheckSquare className="w-6 h-6 text-wedding-gold" /> Notes</>}
-            {currentView === 'messages' && <><MessageCircle className="w-6 h-6 text-wedding-gold" /> Messagerie Privée</>}
-            {currentView === 'settings' && <><Settings className="w-6 h-6 text-wedding-gold" /> Paramètres</>}
-          </h2>
-          <div className="flex gap-4">
+        <header className="glass-nav h-16 sm:h-20 px-4 md:px-8 flex items-center justify-between shrink-0 shadow-xl shadow-wedding-navy/5 z-20 print:hidden mx-4 sm:mx-6 mt-4 rounded-2xl border border-white/50">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setIsMobileSidebarOpen(true)}
+              className="lg:hidden p-2 text-wedding-navy/60 hover:text-wedding-navy transition-colors"
+            >
+              <Menu className="w-6 h-6" />
+            </button>
+            <h2 className="font-serif font-bold text-lg sm:text-2xl text-wedding-navy flex items-center gap-2 md:gap-3">
+              {currentView === 'overview' && <><Activity className="w-5 h-5 md:w-6 md:h-6 text-wedding-gold" /> <span className="hidden xs:inline">Vue d'Ensemble</span><span className="xs:hidden">Vue</span></>}
+              {currentView === 'profiles' && <><LayoutGrid className="w-5 h-5 md:w-6 md:h-6 text-wedding-gold" /> <span className="hidden xs:inline">Base Candidats</span><span className="xs:hidden">Candidats</span></>}
+              {currentView === 'pipeline' && <><Kanban className="w-5 h-5 md:w-6 md:h-6 text-wedding-gold" /> <span className="hidden xs:inline">Pipeline</span><span className="xs:hidden">Pipeline</span></>}
+              {currentView === 'tasks' && <><CheckSquare className="w-5 h-5 md:w-6 md:h-6 text-wedding-gold" /> <span className="hidden xs:inline">Notes</span><span className="xs:hidden">Notes</span></>}
+              {currentView === 'messages' && <><MessageCircle className="w-5 h-5 md:w-6 md:h-6 text-wedding-gold" /> <span className="hidden xs:inline">Messagerie</span><span className="xs:hidden">Messages</span></>}
+              {currentView === 'settings' && <><Settings className="w-5 h-5 md:w-6 md:h-6 text-wedding-gold" /> <span className="hidden xs:inline">Paramètres</span><span className="xs:hidden">Settings</span></>}
+            </h2>
+          </div>
+          <div className="flex gap-2">
             <button
               onClick={() => setShowManualMatchModal(true)}
-              className="bg-wedding-gold text-wedding-navy px-6 py-2 rounded-xl text-xs font-bold tracking-widest uppercase flex items-center gap-2 transition-all shadow-lg hover:shadow-wedding-gold/20 transform hover:-translate-y-0.5 active:scale-95"
+              className="bg-wedding-gold text-wedding-navy px-3 md:px-6 py-2 rounded-xl text-[10px] md:text-xs font-bold tracking-widest uppercase flex items-center gap-2 transition-all shadow-lg hover:shadow-wedding-gold/20 transform hover:-translate-y-0.5 active:scale-95"
             >
-              <Plus className="w-4 h-4" /> Nouveau Match
+              <Plus className="w-3.5 h-3.5 md:w-4 md:h-4" /> <span className="hidden sm:inline">Nouveau Match</span><span className="sm:hidden">Match</span>
             </button>
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto custom-scrollbar relative p-6">
+        <div className="flex-1 overflow-y-auto custom-scrollbar relative p-3 md:p-6">
 
 
 
@@ -663,7 +706,7 @@ const ShadchanDashboard: React.FC<ShadchanDashboardProps> = ({ profiles, onUpdat
                         <p className="font-serif italic text-lg">Votre liste est vide, profitez de ce moment de sérénité.</p>
                       </div>
                     ) : (
-                      tasks.sort((a, b) => b.createdAt - a.createdAt).map(task => (
+                      [...tasks].sort((a, b) => b.createdAt - a.createdAt).map(task => (
                         <div key={task.id} className={`flex items-center justify-between p-5 rounded-2xl border transition-all duration-300 group ${task.completed ? 'bg-white/40 border-wedding-navy/5 opacity-60' : 'bg-white border-wedding-navy/5 hover:border-wedding-gold/30 shadow-sm hover:shadow-md'}`}>
                           <div className="flex items-center gap-5">
                             <button
@@ -1006,93 +1049,62 @@ const ShadchanDashboard: React.FC<ShadchanDashboardProps> = ({ profiles, onUpdat
                       </button>
                     </div>
 
-                    {/* Search & Favorites */}
-                    <div className="flex gap-3">
-                      <div className="relative flex-1 group">
-                        <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-wedding-gold w-4 h-4 transition-transform group-focus-within:scale-110" />
+                    {/* Search & Filters Container */}
+                    <div className="space-y-4">
+                      {/* Search Bar */}
+                      <div className="relative group">
+                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                          <Search className="h-4 w-4 text-wedding-gold group-focus-within:scale-110 transition-transform duration-300" />
+                        </div>
                         <input
                           type="text"
-                          placeholder="Rechercher..."
+                          placeholder="Rechercher par nom, ville, ou tag..."
                           value={searchQuery}
                           onChange={(e) => setSearchQuery(e.target.value)}
-                          className="w-full pl-11 pr-5 py-3 bg-wedding-navy/5 border border-wedding-navy/5 rounded-2xl text-xs text-wedding-navy placeholder:text-wedding-navy/30 focus:outline-none focus:bg-white focus:border-wedding-gold/30 focus:ring-4 focus:ring-wedding-gold/5 transition-all shadow-inner"
+                          className="block w-full pl-11 pr-4 py-3.5 bg-white border border-wedding-navy/5 rounded-xl text-sm font-medium text-wedding-navy placeholder:text-wedding-navy/30 focus:outline-none focus:ring-2 focus:ring-wedding-gold/20 focus:border-wedding-gold/40 transition-all shadow-sm hover:shadow-md"
                         />
-                      </div>
-                      <button
-                        onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
-                        className={`p-3 rounded-2xl border transition-all duration-300 shadow-sm ${showFavoritesOnly ? 'bg-wedding-gold border-wedding-gold text-wedding-navy scale-110 shadow-wedding-gold/20' : 'bg-wedding-navy/5 border-wedding-navy/5 text-wedding-gold hover:bg-wedding-navy/10'}`}
-                        title="Favoris"
-                      >
-                        <Star className={`w-5 h-5 ${showFavoritesOnly ? 'fill-current' : ''}`} />
-                      </button>
-                      <button
-                        onClick={() => setPrivacyMode(!privacyMode)}
-                        className={`p-3 rounded-2xl border transition-all duration-300 shadow-sm ${privacyMode ? 'bg-wedding-navy border-wedding-navy text-white scale-110 shadow-wedding-navy/20' : 'bg-wedding-navy/5 border-wedding-navy/5 text-wedding-navy/40 hover:bg-wedding-navy/10'}`}
-                        title="Mode Privé"
-                      >
-                        {privacyMode ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                      </button>
-                    </div>
-                    {/* Tags Filter */}
-                    {uniqueTags.length > 0 && (
-                      <div className="flex gap-2 mb-2 overflow-x-auto custom-scrollbar py-2">
-                        <button
-                          onClick={() => setSelectedTag('')}
-                          className={`px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest whitespace-nowrap transition-all duration-300 ${!selectedTag ? 'bg-wedding-navy text-white shadow-lg' : 'bg-wedding-navy/5 text-wedding-navy hover:bg-wedding-navy/10'}`}
-                        >
-                          Tous
-                        </button>
-                        {uniqueTags.map(tag => (
+                        <div className="absolute inset-y-0 right-0 pr-2 flex items-center gap-1">
+                          {/* Favorites Toggle */}
                           <button
-                            key={tag}
-                            onClick={() => setSelectedTag(tag === selectedTag ? '' : tag)}
-                            className={`px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest whitespace-nowrap transition-all duration-300 ${selectedTag === tag ? 'bg-wedding-gold text-wedding-navy shadow-lg shadow-wedding-gold/20' : 'bg-wedding-navy/5 text-wedding-navy hover:bg-wedding-navy/10'}`}
+                            onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
+                            className={`p-2 rounded-lg transition-all duration-300 ${showFavoritesOnly ? 'bg-wedding-gold/10 text-wedding-gold' : 'text-wedding-navy/20 hover:text-wedding-gold hover:bg-wedding-gold/5'}`}
+                            title="Afficher les favoris uniquement"
                           >
-                            #{tag}
+                            <Star className={`w-4 h-4 ${showFavoritesOnly ? 'fill-current' : ''}`} />
                           </button>
-                        ))}
+                          {/* Privacy Toggle */}
+                          <button
+                            onClick={() => setPrivacyMode(!privacyMode)}
+                            className={`p-2 rounded-lg transition-all duration-300 ${privacyMode ? 'bg-wedding-navy text-white' : 'text-wedding-navy/20 hover:text-wedding-navy hover:bg-wedding-navy/5'}`}
+                            title={privacyMode ? "Mode Privé Activé" : "Mode Privé Désactivé"}
+                          >
+                            {privacyMode ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          </button>
+                        </div>
                       </div>
-                    )}
 
-                    {/* Advanced Filters */}
-                    <div className="grid grid-cols-2 gap-3">
-                      <select
-                        value={selectedReligiousLevel}
-                        onChange={(e) => setSelectedReligiousLevel(e.target.value)}
-                        className="col-span-2 w-full bg-wedding-navy/5 border border-wedding-navy/5 rounded-2xl px-4 py-2.5 text-[10px] font-bold uppercase tracking-widest text-wedding-navy focus:outline-none focus:bg-white focus:border-wedding-gold/30 transition-all cursor-pointer shadow-inner"
-                      >
-                        <option value="">Toute Hashkafa</option>
-                        {Object.values(ReligiousLevel).map((level) => (
-                          <option key={level} value={level}>{level}</option>
-                        ))}
-                      </select>
-
-                      <select
-                        value={selectedCity}
-                        onChange={(e) => setSelectedCity(e.target.value)}
-                        className="w-full bg-wedding-navy/5 border border-wedding-navy/5 rounded-2xl px-4 py-2.5 text-[10px] font-bold uppercase tracking-widest text-wedding-navy focus:outline-none focus:bg-white focus:border-wedding-gold/30 transition-all cursor-pointer shadow-inner"
-                      >
-                        <option value="">Toute Ville</option>
-                        {uniqueCities.map((city) => (
-                          <option key={city} value={city}>{city}</option>
-                        ))}
-                      </select>
-
-                      {/* Sort Dropdown */}
-                      <div className="relative w-full">
+                      {/* Filters Row */}
+                      <div className="grid grid-cols-2 gap-3">
                         <select
-                          value={sortOption}
-                          onChange={(e) => setSortOption(e.target.value as SortOption)}
-                          className="w-full appearance-none bg-wedding-navy/5 border border-wedding-navy/5 rounded-2xl pl-10 pr-4 py-2.5 text-[10px] font-bold uppercase tracking-widest text-wedding-navy focus:outline-none focus:bg-white focus:border-wedding-gold/30 transition-all cursor-pointer shadow-inner"
+                          value={selectedReligiousLevel}
+                          onChange={(e) => setSelectedReligiousLevel(e.target.value)}
+                          className="block w-full py-2.5 px-3 bg-white border border-wedding-navy/5 rounded-xl text-[10px] sm:text-xs font-bold uppercase tracking-wider text-wedding-navy focus:outline-none focus:ring-2 focus:ring-wedding-gold/20 transition-all cursor-pointer shadow-sm hover:border-wedding-gold/30 appearance-none"
                         >
-                          <option value="newest">Plus récent</option>
-                          <option value="oldest">Plus ancien</option>
-                          <option value="age_asc">Âge (croissant)</option>
-                          <option value="age_desc">Âge (décroissant)</option>
-                          <option value="name_asc">Nom (A-Z)</option>
-                          <option value="name_desc">Nom (Z-A)</option>
+                          <option value="">Hashkafa...</option>
+                          {Object.values(ReligiousLevel).map((level) => (
+                            <option key={level} value={level}>{level}</option>
+                          ))}
                         </select>
-                        <ArrowUpDown className="absolute left-4 top-1/2 transform -translate-y-1/2 w-3.5 h-3.5 text-wedding-gold pointer-events-none" />
+                        <select
+                          value={selectedCity}
+                          onChange={(e) => setSelectedCity(e.target.value)}
+                          className="block w-full py-2.5 px-3 bg-white border border-wedding-navy/5 rounded-xl text-[10px] sm:text-xs font-bold uppercase tracking-wider text-wedding-navy focus:outline-none focus:ring-2 focus:ring-wedding-gold/20 transition-all cursor-pointer shadow-sm hover:border-wedding-gold/30 appearance-none"
+                        >
+                          <option value="">Ville...</option>
+                          {uniqueCities.map((city) => (
+                            <option key={city} value={city}>{city}</option>
+                          ))}
+                        </select>
                       </div>
                     </div>
                   </div>
@@ -1108,35 +1120,50 @@ const ShadchanDashboard: React.FC<ShadchanDashboardProps> = ({ profiles, onUpdat
                         <div
                           key={profile.id}
                           onClick={() => handleProfileSelect(profile)}
-                          className={`p-5 rounded-2xl cursor-pointer transition-all duration-500 group relative border ${selectedProfile?.id === profile.id ? 'bg-wedding-navy text-white shadow-2xl shadow-wedding-navy/30 border-wedding-navy scale-[1.02]' : 'bg-white/40 hover:bg-white/80 text-wedding-navy border-transparent hover:border-wedding-gold/20 shadow-sm'}`}
+                          className={`p-4 rounded-xl cursor-pointer transition-all duration-300 group relative border flex items-center gap-4 ${selectedProfile?.id === profile.id
+                            ? 'bg-wedding-navy text-white shadow-xl shadow-wedding-navy/30 border-wedding-navy scale-[1.02] ring-1 ring-wedding-navy'
+                            : 'bg-white hover:bg-white/80 text-wedding-navy border-transparent hover:border-wedding-gold/30 hover:shadow-lg'
+                            }`}
                         >
-                          <button
-                            onClick={(e) => toggleFavorite(e, profile)}
-                            className={`absolute top-5 right-5 p-1.5 rounded-full transition-all duration-300 ${profile.isFavorite ? 'text-wedding-gold opacity-100 scale-110' : 'text-wedding-navy/10 opacity-0 group-hover:opacity-100 hover:text-wedding-gold'}`}
+                          {/* Selection Checkbox */}
+                          <div
+                            onClick={(e) => toggleProfileSelection(profile.id, e)}
+                            className={`absolute top-3 right-3 p-1.5 rounded-full transition-colors z-10 ${selectedProfileIds.includes(profile.id) ? 'text-wedding-gold bg-wedding-navy shadow-md' : 'text-wedding-navy/10 hover:text-wedding-gold'}`}
                           >
-                            <Star className={`w-4 h-4 ${profile.isFavorite ? 'fill-current' : ''}`} />
-                          </button>
+                            {selectedProfileIds.includes(profile.id) ? <CheckCircle2 className="w-5 h-5 fill-current" /> : <Square className="w-5 h-5" />}
+                          </div>
 
-                          <div className="flex justify-between items-center pr-8">
-                            <div className="flex items-center gap-4">
-                              <button
-                                onClick={(e) => toggleProfileSelection(profile.id, e)}
-                                className={`transition-all duration-300 ${selectedProfileIds.includes(profile.id) ? 'text-wedding-gold' : 'text-wedding-navy/20 hover:text-wedding-gold'}`}
-                              >
-                                {selectedProfileIds.includes(profile.id) ? <CheckCircle2 className="w-6 h-6 fill-wedding-gold/20" /> : <Square className="w-6 h-6" />}
-                              </button>
-                              <div>
-                                <h3 className={`font-serif font-bold text-lg leading-tight ${selectedProfile?.id === profile.id ? 'text-white' : 'text-wedding-navy'}`}>
-                                  {privacyMode ? `${profile.firstName} ${profile.lastName.charAt(0)}.` : `${profile.firstName} ${profile.lastName}`}
-                                </h3>
-                                <div className="flex items-center gap-2 mt-1.5">
-                                  <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-widest ${selectedProfile?.id === profile.id ? 'bg-white/20 text-white' : 'bg-wedding-gold/10 text-wedding-gold'}`}>{profile.age} ans</span>
-                                  <span className={`text-[10px] font-bold uppercase tracking-tighter opacity-60 ${selectedProfile?.id === profile.id ? 'text-white/70' : 'text-wedding-navy/70'}`}>{profile.city}</span>
-                                </div>
+                          {/* Avatar */}
+                          <div className={`w-12 h-12 rounded-full flex items-center justify-center text-lg font-serif font-bold shrink-0 overflow-hidden shadow-md border-2 ${selectedProfile?.id === profile.id ? 'border-white/20 bg-white/10 text-white' : 'border-white bg-wedding-navy/5 text-wedding-navy'}`}>
+                            {profile.imageUrl ? (
+                              <img src={profile.imageUrl} alt="" className="w-full h-full object-cover" />
+                            ) : (
+                              profile.firstName.charAt(0)
+                            )}
+                          </div>
+
+                          {/* Info */}
+                          <div className="flex-1 min-w-0 pr-8">
+                            <h3 className={`font-serif font-bold text-base truncate leading-snug ${selectedProfile?.id === profile.id ? 'text-white' : 'text-wedding-navy'}`}>
+                              {privacyMode ? `${profile.firstName} ${profile.lastName.charAt(0)}.` : `${profile.firstName} ${profile.lastName}`}
+                            </h3>
+                            <div className={`flex items-center gap-2 mt-1 text-[9px] font-bold uppercase tracking-widest ${selectedProfile?.id === profile.id ? 'text-white/60' : 'text-wedding-navy/40'}`}>
+                              <span>{profile.age} ANS</span>
+                              <span className="w-1 h-1 rounded-full bg-current opacity-50"></span>
+                              <span className="truncate max-w-[80px]">{profile.city}</span>
+                            </div>
+
+                            {/* Favorite Indicator (Small) */}
+                            {profile.isFavorite && (
+                              <div className="absolute bottom-3 right-3">
+                                <Star className="w-3 h-3 fill-wedding-gold text-wedding-gold" />
                               </div>
+                            )}
+
+                            <div className={`mt-2 inline-flex px-2 py-0.5 rounded-md text-[8px] font-bold uppercase tracking-wider border ${selectedProfile?.id === profile.id ? 'bg-wedding-gold text-wedding-navy border-wedding-gold' : 'bg-wedding-navy/5 text-wedding-navy/60 border-wedding-navy/5'}`}>
+                              {profile.religiousLevel}
                             </div>
                           </div>
-                          <p className={`text-[10px] mt-3 font-bold uppercase tracking-[0.1em] truncate opacity-50 ${selectedProfile?.id === profile.id ? 'text-white/60' : 'text-wedding-navy/60'}`}>{profile.religiousLevel}</p>
                         </div>
                       ))
                     )}
@@ -1146,41 +1173,32 @@ const ShadchanDashboard: React.FC<ShadchanDashboardProps> = ({ profiles, onUpdat
                 {/* Main Detail View */}
                 <div className={`flex-1 glass-card border-wedding-navy/5 overflow-hidden flex flex-col print:shadow-none print:border-none print:h-auto print:overflow-visible relative ${!selectedProfile ? 'hidden lg:flex' : 'flex'}`}>
                   {!selectedProfile && (
-                    <div className="absolute inset-0 p-12 flex flex-col items-center justify-center bg-white/40 backdrop-blur-subtle">
-                      <div className="max-w-md w-full text-center">
-                        <div className="w-24 h-24 glass-card shadow-2xl shadow-wedding-gold/10 flex items-center justify-center mx-auto mb-8 border-wedding-gold/30">
-                          <Activity className="w-10 h-10 text-wedding-gold" />
+                    <div className="absolute inset-0 flex items-center justify-center p-8 bg-gradient-to-br from-white/60 to-white/40 backdrop-blur-sm">
+                      <div className="max-w-md w-full text-center space-y-6">
+                        <div className="w-32 h-32 mx-auto bg-white rounded-full flex items-center justify-center shadow-2xl shadow-wedding-gold/20 border-4 border-white ring-1 ring-wedding-navy/5 relative group cursor-pointer hover:scale-105 transition-transform duration-500">
+                          <div className="absolute inset-0 bg-wedding-gold/10 rounded-full animate-pulse"></div>
+                          <Users className="w-12 h-12 text-wedding-gold relative z-10" />
+                          <div className="absolute bottom-0 right-0 p-3 bg-wedding-navy rounded-full text-white shadow-lg transform translate-x-1 translate-y-1">
+                            <Search className="w-5 h-5" />
+                          </div>
                         </div>
-                        <h2 className="text-3xl font-serif font-bold text-wedding-navy mb-3">Activité Récente</h2>
-                        <p className="text-wedding-text/60 font-medium tracking-wide mb-12">Consultez les derniers événements de votre plateforme.</p>
 
-                        <div className="space-y-4">
-                          {activities.length === 0 ? (
-                            <p className="text-center text-wedding-text/40 italic py-8 border border-dashed border-wedding-navy/10 rounded-3xl">Aucun événement à afficher.</p>
-                          ) : (
-                            activities.slice(0, 4).map(activity => (
-                              <div key={activity.id} className="glass-card p-5 border-wedding-navy/5 shadow-xl shadow-wedding-navy/5 flex items-start gap-5 hover:scale-[1.02] transition-transform duration-300 text-left">
-                                <div className={`p-3 rounded-2xl shrink-0 shadow-lg ${activity.type === 'MATCH_NEW' ? 'bg-wedding-gold text-wedding-navy' :
-                                  activity.type === 'MATCH_STATUS' ? 'bg-wedding-navy text-white' :
-                                    activity.type === 'PROFILE_NEW' ? 'bg-green-100 text-green-700' :
-                                      'bg-white text-wedding-navy border border-wedding-navy/10'
-                                  }`}>
-                                  {activity.type === 'MATCH_NEW' && <Sparkles className="w-5 h-5" />}
-                                  {activity.type === 'MATCH_STATUS' && <Kanban className="w-5 h-5" />}
-                                  {activity.type === 'PROFILE_NEW' && <Users className="w-5 h-5" />}
-                                  {activity.type === 'NOTE_ADDED' && <FileText className="w-5 h-5" />}
-                                  {activity.type === 'EXPORT_DATA' && <Save className="w-5 h-5" />}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-sm font-bold text-wedding-navy leading-tight truncate">{activity.description}</p>
-                                  <div className="flex items-center gap-2 mt-2 text-[10px] font-bold text-wedding-text/40 uppercase tracking-widest">
-                                    <Clock className="w-3.5 h-3.5 text-wedding-gold" />
-                                    {new Date(activity.timestamp).toLocaleString()}
-                                  </div>
-                                </div>
-                              </div>
-                            ))
-                          )}
+                        <div>
+                          <h2 className="text-3xl font-serif font-bold text-wedding-navy mb-3">Sélectionnez un Candidat</h2>
+                          <p className="text-wedding-text/60 leading-relaxed font-medium">
+                            Cliquez sur un profil dans la liste pour accéder à ses informations détaillées, ses préférences et gérer son parcours de matchmaking.
+                          </p>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4 pt-6">
+                          <div className="p-4 bg-white rounded-2xl shadow-sm border border-wedding-navy/5 flex flex-col items-center gap-2 hover:border-wedding-gold/30 transition-colors group">
+                            <span className="text-3xl font-serif font-bold text-wedding-navy group-hover:text-wedding-gold transition-colors">{profiles.filter(p => p.gender === Gender.MALE).length}</span>
+                            <span className="text-[10px] font-bold uppercase tracking-widest text-wedding-navy/40">Hommes</span>
+                          </div>
+                          <div className="p-4 bg-white rounded-2xl shadow-sm border border-wedding-navy/5 flex flex-col items-center gap-2 hover:border-wedding-gold/30 transition-colors group">
+                            <span className="text-3xl font-serif font-bold text-wedding-navy group-hover:text-wedding-gold transition-colors">{profiles.filter(p => p.gender === Gender.FEMALE).length}</span>
+                            <span className="text-[10px] font-bold uppercase tracking-widest text-wedding-navy/40">Femmes</span>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -1210,7 +1228,7 @@ const ShadchanDashboard: React.FC<ShadchanDashboardProps> = ({ profiles, onUpdat
                           <div className="flex flex-wrap justify-between items-start gap-6">
                             <div>
                               <div className="flex items-center gap-4">
-                                <h1 className="text-5xl font-serif font-bold text-wedding-navy mb-2 tracking-tight">{selectedProfile.firstName} {selectedProfile.lastName}</h1>
+                                <h1 className="text-3xl md:text-5xl font-serif font-bold text-wedding-navy mb-2 tracking-tight">{selectedProfile.firstName} {selectedProfile.lastName}</h1>
                                 <div className="flex gap-2">
                                   <button onClick={(e) => toggleFavorite(e, selectedProfile)} className={`p-2.5 rounded-2xl transition-all duration-300 shadow-sm ${selectedProfile.isFavorite ? 'text-wedding-navy bg-wedding-gold ring-1 ring-wedding-gold' : 'text-wedding-navy/20 bg-white border border-wedding-navy/5 hover:text-wedding-gold hover:border-wedding-gold'}`}>
                                     <Star className={`w-6 h-6 ${selectedProfile.isFavorite ? 'fill-current' : ''}`} />
@@ -1291,58 +1309,212 @@ const ShadchanDashboard: React.FC<ShadchanDashboardProps> = ({ profiles, onUpdat
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-10 mb-12">
-                        <div className="prose prose-slate max-w-none">
-                          <h3 className="text-[10px] font-bold text-wedding-navy/40 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
-                            <div className="w-1.5 h-1.5 rounded-full bg-wedding-gold"></div>
-                            Parcours & Personnalité
-                          </h3>
-                          <div className="space-y-4">
-                            {selectedProfile.educationalPath && (
-                              <div className="bg-white/40 p-6 rounded-3xl border border-wedding-navy/5 shadow-inner">
-                                <p className="text-[9px] font-bold text-wedding-navy/40 uppercase tracking-widest mb-2 italic">Parcours Scolaire</p>
-                                <p className="text-wedding-navy/80 leading-relaxed font-medium">{selectedProfile.educationalPath}</p>
-                              </div>
-                            )}
-                            <div className="bg-white/40 p-6 rounded-3xl border border-wedding-navy/5 shadow-inner">
-                              <p className="text-[9px] font-bold text-wedding-navy/40 uppercase tracking-widest mb-2 italic">Description de soi</p>
-                              <p className="text-wedding-navy/80 leading-relaxed font-medium">
-                                {selectedProfile.selfDescription || selectedProfile.aboutMe}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="prose prose-slate max-w-none">
-                          <h3 className="text-[10px] font-bold text-wedding-navy/40 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
-                            <div className="w-1.5 h-1.5 rounded-full bg-wedding-gold"></div>
-                            Recherche & Vision
-                          </h3>
-                          <div className="space-y-4">
-                            <div className="bg-wedding-navy/5 p-6 rounded-3xl border border-wedding-navy/5 shadow-inner italic">
-                              <p className="text-[9px] font-bold text-wedding-navy/40 uppercase tracking-widest mb-2 not-italic">Profil Idéal</p>
-                              <p className="text-wedding-navy/90 font-medium leading-relaxed">
-                                {selectedProfile.lookingFor}
-                              </p>
-                            </div>
-                            {selectedProfile.ambitions && (
-                              <div className="bg-wedding-navy/5 p-6 rounded-3xl border border-wedding-navy/5 shadow-inner italic">
-                                <p className="text-[9px] font-bold text-wedding-navy/40 uppercase tracking-widest mb-2 not-italic">Ambitions & Projets</p>
-                                <p className="text-wedding-navy/90 font-medium leading-relaxed">{selectedProfile.ambitions}</p>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-10 mb-12">
+                      {/* Sections Détails Profil */}
+                      <div className="space-y-12 mb-12">
+                        {/* Section 1: Physique & Caractéristiques */}
                         <div>
                           <h3 className="text-[10px] font-bold text-wedding-navy/40 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
                             <div className="w-1.5 h-1.5 rounded-full bg-wedding-gold"></div>
-                            Famille & Parents
+                            Portrait & Physionomie
                           </h3>
-                          <div className="space-y-4">
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="bg-white/40 p-5 rounded-3xl border border-wedding-navy/5 shadow-inner">
+                              <p className="text-[9px] font-bold text-wedding-navy/40 uppercase tracking-widest mb-2 italic">Détails Physiques</p>
+                              <div className="space-y-1">
+                                <p className="text-sm font-bold text-wedding-navy flex justify-between">Teint: <span className="font-medium opacity-70">{selectedProfile.skinColor || 'Non spécifié'}</span></p>
+                                <p className="text-sm font-bold text-wedding-navy flex justify-between">Yeux: <span className="font-medium opacity-70">{selectedProfile.eyeColor || 'Non spécifié'}</span></p>
+                                <p className="text-sm font-bold text-wedding-navy flex justify-between">Cheveux: <span className="font-medium opacity-70">{selectedProfile.hairColor || 'Non spécifié'}</span></p>
+                              </div>
+                            </div>
+                            <div className="bg-white/40 p-5 rounded-3xl border border-wedding-navy/5 shadow-inner">
+                              <p className="text-[9px] font-bold text-wedding-navy/40 uppercase tracking-widest mb-2 italic">Tabac</p>
+                              <p className="text-sm font-bold text-wedding-navy">{selectedProfile.isSmoking || 'Non spécifié'}</p>
+                              {selectedProfile.smokingDetails && <p className="text-xs mt-1 text-wedding-navy/60 italic">{selectedProfile.smokingDetails}</p>}
+                            </div>
+                            <div className="bg-white/40 p-5 rounded-3xl border border-wedding-navy/5 shadow-inner">
+                              <p className="text-[9px] font-bold text-wedding-navy/40 uppercase tracking-widest mb-2 italic">Santé & Plus</p>
+                              <p className="text-xs text-wedding-navy/70 leading-relaxed">{selectedProfile.aboutMe || 'Informations de base...'}</p>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Section 2: Parcours Scolaire & Pro */}
+                        <div>
+                          <h3 className="text-[10px] font-bold text-wedding-navy/40 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                            <div className="w-1.5 h-1.5 rounded-full bg-wedding-gold"></div>
+                            Éducation & Carrière
+                          </h3>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="bg-white/40 p-6 rounded-3xl border border-wedding-navy/5 shadow-inner space-y-4">
+                              <p className="text-[9px] font-bold text-wedding-navy/40 uppercase tracking-widest mb-1 italic">Scolarité Traditionnelle</p>
+                              <div className="space-y-3">
+                                <div>
+                                  <p className="text-[10px] text-wedding-gold font-bold uppercase tracking-tighter">Primaire</p>
+                                  <p className="text-sm font-bold text-wedding-navy">{selectedProfile.primarySchool || '-'}</p>
+                                </div>
+                                <div>
+                                  <p className="text-[10px] text-wedding-gold font-bold uppercase tracking-tighter">Collège</p>
+                                  <p className="text-sm font-bold text-wedding-navy">{selectedProfile.middleSchool || '-'}</p>
+                                </div>
+                                <div>
+                                  <p className="text-[10px] text-wedding-gold font-bold uppercase tracking-tighter">Lycée</p>
+                                  <p className="text-sm font-bold text-wedding-navy">{selectedProfile.highSchool || '-'}</p>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="bg-white/40 p-6 rounded-3xl border border-wedding-navy/5 shadow-inner space-y-4">
+                              <p className="text-[9px] font-bold text-wedding-navy/40 uppercase tracking-widest mb-1 italic">Parcours Yéchiva / Séminaire</p>
+                              <div className="space-y-3">
+                                <div>
+                                  <p className="text-[10px] text-wedding-gold font-bold uppercase tracking-tighter">Yéchiva Ktana / Séminaire</p>
+                                  <p className="text-sm font-bold text-wedding-navy">{selectedProfile.yeshivaKtana || '-'}</p>
+                                </div>
+                                <div>
+                                  <p className="text-[10px] text-wedding-gold font-bold uppercase tracking-tighter">Yéchiva Gdola / Séminaire Avancé</p>
+                                  <p className="text-sm font-bold text-wedding-navy">{selectedProfile.yeshivaGdola || '-'}</p>
+                                </div>
+                                {selectedProfile.educationalPath && (
+                                  <div className="pt-2 border-t border-wedding-navy/5">
+                                    <p className="text-xs text-wedding-navy/70 leading-relaxed italic">"{selectedProfile.educationalPath}"</p>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                            <div className="md:col-span-2 bg-wedding-navy/5 p-6 rounded-3xl border border-wedding-navy/5 shadow-inner">
+                              <div className="flex flex-col md:flex-row gap-8">
+                                <div className="flex-1">
+                                  <p className="text-[9px] font-bold text-wedding-navy/40 uppercase tracking-widest mb-2 italic">Occupation Actuelle</p>
+                                  <p className="text-lg font-serif font-bold text-wedding-navy">{selectedProfile.currentOccupation || selectedProfile.occupation}</p>
+                                </div>
+                                <div className="flex-1">
+                                  <p className="text-[9px] font-bold text-wedding-navy/40 uppercase tracking-widest mb-2 italic">Diplômes & Qualifications</p>
+                                  <p className="text-sm font-bold text-wedding-navy/80">{selectedProfile.qualifications || 'Non spécifiés'}</p>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Section 3: Personnalité & Style */}
+                        <div>
+                          <h3 className="text-[10px] font-bold text-wedding-navy/40 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                            <div className="w-1.5 h-1.5 rounded-full bg-wedding-gold"></div>
+                            Personnalité & Style de Vie
+                          </h3>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            {/* Traits */}
                             <div className="bg-white/40 p-6 rounded-3xl border border-wedding-navy/5 shadow-inner">
-                              <div className="grid grid-cols-2 gap-4">
+                              <p className="text-[9px] font-bold text-wedding-navy/40 uppercase tracking-widest mb-3 italic">Caractère</p>
+                              <div className="flex flex-wrap gap-2 mb-3">
+                                {selectedProfile.personalTraits?.split(',').filter(v => v).map(trait => (
+                                  <span key={trait} className="px-3 py-1 bg-wedding-gold/10 text-wedding-navy rounded-lg text-[10px] font-bold border border-wedding-gold/20">{trait}</span>
+                                ))}
+                              </div>
+                              {selectedProfile.personalTraitsDetails && (
+                                <p className="text-xs text-wedding-navy/60 italic leading-relaxed border-t border-wedding-navy/5 pt-2">"{selectedProfile.personalTraitsDetails}"</p>
+                              )}
+                            </div>
+                            {/* Clothing */}
+                            <div className="bg-white/40 p-6 rounded-3xl border border-wedding-navy/5 shadow-inner">
+                              <p className="text-[9px] font-bold text-wedding-navy/40 uppercase tracking-widest mb-3 italic">Style Vestimentaire</p>
+                              <div className="flex flex-wrap gap-2 mb-3">
+                                {selectedProfile.personalClothing?.split(',').filter(v => v).map(style => (
+                                  <span key={style} className="px-3 py-1 bg-wedding-navy/5 text-wedding-navy rounded-lg text-[10px] font-bold border border-wedding-navy/10">{style}</span>
+                                ))}
+                              </div>
+                              {selectedProfile.personalClothingDetails && (
+                                <p className="text-xs text-wedding-navy/60 italic leading-relaxed border-t border-wedding-navy/5 pt-2">"{selectedProfile.personalClothingDetails}"</p>
+                              )}
+                            </div>
+                            {/* Phone */}
+                            <div className="bg-white/40 p-6 rounded-3xl border border-wedding-navy/5 shadow-inner">
+                              <p className="text-[9px] font-bold text-wedding-navy/40 uppercase tracking-widest mb-3 italic">Utilisation Téléphone</p>
+                              <div className="flex flex-wrap gap-2 mb-3">
+                                {selectedProfile.personalPhone?.split(',').filter(v => v).map(type => (
+                                  <span key={type} className="px-3 py-1 bg-wedding-rose/10 text-wedding-navy rounded-lg text-[10px] font-bold border border-wedding-rose/20">{type}</span>
+                                ))}
+                              </div>
+                              {selectedProfile.personalPhoneDetails && (
+                                <p className="text-xs text-wedding-navy/60 italic leading-relaxed border-t border-wedding-navy/5 pt-2">"{selectedProfile.personalPhoneDetails}"</p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Section 4: Vision & recherche */}
+                        <div>
+                          <h3 className="text-[10px] font-bold text-wedding-navy/40 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                            <div className="w-1.5 h-1.5 rounded-full bg-wedding-gold"></div>
+                            Vision & Critères de Recherche
+                          </h3>
+                          <div className="space-y-6">
+                            <div className="bg-wedding-navy/5 p-8 rounded-[2rem] border border-wedding-navy/5 shadow-inner">
+                              <p className="text-[9px] font-bold text-wedding-navy/40 uppercase tracking-widest mb-4 italic">Le Profil Idéal</p>
+                              <p className="text-lg font-serif italic text-wedding-navy font-medium leading-relaxed mb-6">"{selectedProfile.lookingFor}"</p>
+
+                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                <div>
+                                  <p className="text-[10px] text-wedding-gold font-bold uppercase tracking-tight mb-2">Milieu familial</p>
+                                  <p className="text-sm font-bold text-wedding-navy">{selectedProfile.searchFamily || 'Non spécifié'}</p>
+                                  {selectedProfile.searchFamilyDetails && <p className="text-[11px] text-wedding-navy/60 italic mt-1">{selectedProfile.searchFamilyDetails}</p>}
+                                </div>
+                                <div>
+                                  <p className="text-[10px] text-wedding-gold font-bold uppercase tracking-tight mb-2">Style vestimentaire</p>
+                                  <p className="text-sm font-bold text-wedding-navy">{selectedProfile.searchClothing || 'Non spécifié'}</p>
+                                  {selectedProfile.searchClothingDetails && <p className="text-[11px] text-wedding-navy/60 italic mt-1">{selectedProfile.searchClothingDetails}</p>}
+                                </div>
+                                <div>
+                                  <p className="text-[10px] text-wedding-gold font-bold uppercase tracking-tight mb-2">Type de téléphone</p>
+                                  <p className="text-sm font-bold text-wedding-navy">{selectedProfile.searchPhone || 'Non spécifié'}</p>
+                                  {selectedProfile.searchPhoneDetails && <p className="text-[11px] text-wedding-navy/60 italic mt-1">{selectedProfile.searchPhoneDetails}</p>}
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                              <div className="bg-white/40 p-6 rounded-3xl border border-wedding-navy/5 shadow-inner">
+                                <p className="text-[9px] font-bold text-wedding-navy/40 uppercase tracking-widest mb-3 italic">Traits de caractère recherchés</p>
+                                <p className="text-sm font-bold text-wedding-navy mb-2">{selectedProfile.searchTraits || '-'}</p>
+                                {selectedProfile.searchTraitsDetails && <p className="text-xs text-wedding-navy/60 italic">"{selectedProfile.searchTraitsDetails}"</p>}
+                              </div>
+                              <div className="bg-white/40 p-6 rounded-3xl border border-wedding-navy/5 shadow-inner">
+                                <p className="text-[9px] font-bold text-wedding-navy/40 uppercase tracking-widest mb-3 italic">Priorités dans la recherche</p>
+                                <p className="text-sm font-bold text-wedding-navy mb-2">{selectedProfile.searchPriorities || '-'}</p>
+                                {selectedProfile.searchPrioritiesDetails && <p className="text-xs text-wedding-navy/60 italic">"{selectedProfile.searchPrioritiesDetails}"</p>}
+                              </div>
+                            </div>
+
+                            <div className="bg-wedding-navy/5 p-6 rounded-3xl border border-wedding-navy/5 shadow-inner">
+                              <p className="text-[9px] font-bold text-wedding-navy/40 uppercase tracking-widest mb-3 italic">Ambitions & Projets de Vie</p>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                  <p className="text-[10px] text-wedding-gold font-bold uppercase tracking-tight mb-1">Professionnel</p>
+                                  <p className="text-sm font-medium text-wedding-navy/80">{selectedProfile.ambitionCareer || '-'}</p>
+                                </div>
+                                <div>
+                                  <p className="text-[10px] text-wedding-gold font-bold uppercase tracking-tight mb-1">Lieu de vie</p>
+                                  <p className="text-sm font-medium text-wedding-navy/80">{selectedProfile.ambitionLocation || '-'}</p>
+                                </div>
+                              </div>
+                              {selectedProfile.ambitions && (
+                                <div className="mt-4 pt-4 border-t border-wedding-navy/10">
+                                  <p className="text-[10px] text-wedding-gold font-bold uppercase tracking-tight mb-1">Détails Ambitions</p>
+                                  <p className="text-sm font-medium text-wedding-navy/80 leading-relaxed italic">"{selectedProfile.ambitions}"</p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Section 5: Famille & Références */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                          <div>
+                            <h3 className="text-[10px] font-bold text-wedding-navy/40 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                              <div className="w-1.5 h-1.5 rounded-full bg-wedding-gold"></div>
+                              Environnement Familial
+                            </h3>
+                            <div className="bg-white/40 p-6 rounded-3xl border border-wedding-navy/5 shadow-inner space-y-6">
+                              <div className="grid grid-cols-2 gap-6">
                                 <div>
                                   <p className="text-[9px] font-bold text-wedding-navy/40 uppercase tracking-widest mb-1 italic">Père</p>
                                   <p className="text-sm font-bold text-wedding-navy">{selectedProfile.fatherName || 'Non renseigné'}</p>
@@ -1354,33 +1526,41 @@ const ShadchanDashboard: React.FC<ShadchanDashboardProps> = ({ profiles, onUpdat
                                   {selectedProfile.motherPhone && <p className="text-[10px] text-wedding-gold font-bold mt-1">{selectedProfile.motherPhone}</p>}
                                 </div>
                               </div>
+                              {selectedProfile.familyDescription && (
+                                <div className="pt-4 border-t border-wedding-navy/5">
+                                  <p className="text-[9px] font-bold text-wedding-navy/40 uppercase tracking-widest mb-2 italic">Structure & Milieu</p>
+                                  <p className="text-sm font-medium text-wedding-navy/80 leading-relaxed">{selectedProfile.familyDescription}</p>
+                                </div>
+                              )}
                             </div>
-                            {selectedProfile.familyDescription && (
-                              <div className="bg-white/40 p-6 rounded-3xl border border-wedding-navy/5 shadow-inner">
-                                <p className="text-[9px] font-bold text-wedding-navy/40 uppercase tracking-widest mb-2 italic">Structure Familiale</p>
-                                <p className="text-sm font-medium text-wedding-navy/80 leading-relaxed whitespace-pre-wrap">{selectedProfile.familyDescription}</p>
-                              </div>
-                            )}
                           </div>
-                        </div>
-                        <div>
-                          <h3 className="text-[10px] font-bold text-wedding-navy/40 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
-                            <div className="w-1.5 h-1.5 rounded-full bg-wedding-gold"></div>
-                            Communauté & Contacts
-                          </h3>
-                          <div className="space-y-4">
-                            {selectedProfile.community && (
-                              <div className="bg-wedding-navy/5 p-6 rounded-3xl border border-wedding-navy/5 shadow-inner">
-                                <p className="text-[9px] font-bold text-wedding-navy/40 uppercase tracking-widest mb-2 italic">Fidélité Religieuse (Kehila)</p>
-                                <p className="text-sm font-bold text-wedding-navy">{selectedProfile.community}</p>
+                          <div>
+                            <h3 className="text-[10px] font-bold text-wedding-navy/40 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                              <div className="w-1.5 h-1.5 rounded-full bg-wedding-gold"></div>
+                              Rapports & Références
+                            </h3>
+                            <div className="bg-white/40 p-6 rounded-3xl border border-wedding-navy/5 shadow-inner space-y-5">
+                              <div>
+                                <p className="text-[9px] font-bold text-wedding-navy/40 uppercase tracking-widest mb-2 italic">Rav de la Yéchiva / Séminaire</p>
+                                <div className="flex items-center gap-3 bg-white p-3 rounded-2xl border border-wedding-navy/5 shadow-sm">
+                                  <User className="w-4 h-4 text-wedding-gold" />
+                                  <p className="text-xs font-bold text-wedding-navy">{selectedProfile.ravYeshiva || '-'}</p>
+                                </div>
                               </div>
-                            )}
-                            {selectedProfile.rabbanimContacts && (
-                              <div className="bg-white/40 p-6 rounded-3xl border border-wedding-navy/5 shadow-inner">
-                                <p className="text-[9px] font-bold text-wedding-navy/40 uppercase tracking-widest mb-2 italic">Références Rabbanims</p>
-                                <p className="text-sm font-medium text-wedding-navy/80 leading-relaxed whitespace-pre-wrap">{selectedProfile.rabbanimContacts}</p>
+                              <div>
+                                <p className="text-[9px] font-bold text-wedding-navy/40 uppercase tracking-widest mb-2 italic">Rav de la Communauté</p>
+                                <div className="flex items-center gap-3 bg-white p-3 rounded-2xl border border-wedding-navy/5 shadow-sm">
+                                  <Users className="w-4 h-4 text-wedding-gold" />
+                                  <p className="text-xs font-bold text-wedding-navy">{selectedProfile.ravKehila || '-'}</p>
+                                </div>
                               </div>
-                            )}
+                              {selectedProfile.community && (
+                                <div className="pt-2">
+                                  <p className="text-[9px] font-bold text-wedding-navy/40 uppercase tracking-widest mb-1 italic">Voisinage / Kehila</p>
+                                  <p className="text-sm font-bold text-wedding-navy">{selectedProfile.community}</p>
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -1787,14 +1967,7 @@ const ShadchanDashboard: React.FC<ShadchanDashboardProps> = ({ profiles, onUpdat
                         )}
                       </div>
                     </div>
-                  ) : (
-                    <div className="h-full flex flex-col items-center justify-center text-wedding-navy/20">
-                      <div className="w-32 h-32 rounded-3xl glass-card flex items-center justify-center mb-8 border-wedding-navy/5 shadow-2xl shadow-wedding-navy/5">
-                        <Heart className="w-12 h-12 text-wedding-gold opacity-30" />
-                      </div>
-                      <p className="text-2xl font-serif text-wedding-navy/40 italic">Sélectionnez un candidat pour commencer.</p>
-                    </div>
-                  )}
+                  ) : null}
                 </div>
               </div>
             )
@@ -1874,32 +2047,74 @@ const ShadchanDashboard: React.FC<ShadchanDashboardProps> = ({ profiles, onUpdat
               <div className="max-w-6xl mx-auto pt-8 px-6 w-full h-full flex gap-8 pb-10">
                 {/* Sidebar List */}
                 <div className="w-80 glass-card border-wedding-navy/5 overflow-hidden flex flex-col h-[700px] shadow-2xl shadow-wedding-navy/5">
-                  <div className="p-6 border-b border-wedding-navy/5 bg-wedding-navy/5">
-                    <h3 className="text-sm font-serif font-bold text-wedding-navy uppercase tracking-luxury">Conversations</h3>
+                  <div className="p-6 border-b border-wedding-navy/5 bg-wedding-navy/5 space-y-4">
+                    <h3 className="text-sm font-serif font-bold text-wedding-navy uppercase tracking-luxury">Messagerie</h3>
+
+                    {/* Chat Search Bar */}
+                    <div className="relative group">
+                      <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-wedding-navy/30 group-focus-within:text-wedding-gold transition-colors" />
+                      <input
+                        type="text"
+                        placeholder="RECHERCHER UN JEUNE..."
+                        value={chatSearchQuery}
+                        onChange={(e) => setChatSearchQuery(e.target.value)}
+                        className="w-full bg-white/50 border border-wedding-navy/10 rounded-xl py-2.5 pl-11 pr-4 text-[10px] font-bold uppercase tracking-widest text-wedding-navy focus:outline-none focus:bg-white focus:border-wedding-gold/30 transition-all shadow-sm"
+                      />
+                    </div>
                   </div>
+
                   <div className="flex-1 overflow-y-auto custom-scrollbar">
-                    {profiles.map(p => {
-                      const assignedS = shadchans.find(s => s.id === p.assignedShadchanId);
-                      return (
-                        <div
-                          key={p.id}
-                          onClick={() => setChatProfile(p)}
-                          className={`p-5 border-b border-wedding-navy/5 cursor-pointer transition-all duration-300 ${chatProfile?.id === p.id ? 'bg-wedding-navy text-white shadow-xl scale-[1.02] relative z-10' : 'hover:bg-white/60'}`}
-                        >
-                          <div className="flex justify-between items-start">
-                            <div className={`font-bold text-sm leading-tight ${chatProfile?.id === p.id ? 'text-white' : 'text-wedding-navy'}`}>{p.firstName} {p.lastName}</div>
-                            {assignedS && (
-                              <div className={`text-[8px] px-1.5 py-0.5 rounded uppercase font-bold tracking-tighter ${chatProfile?.id === p.id ? 'bg-white/20 text-white' : 'bg-wedding-gold/20 text-wedding-gold'}`}>
-                                {assignedS.name.split(' ')[0]}
-                              </div>
-                            )}
+                    {(() => {
+                      const filtered = profiles.filter(p => {
+                        const name = (p.firstName + ' ' + p.lastName).toLowerCase();
+                        const query = chatSearchQuery.toLowerCase();
+                        const matchesSearch = name.includes(query);
+                        const hasMessages = idsWithMessages.includes(p.id);
+
+                        if (chatSearchQuery) return matchesSearch;
+                        return hasMessages;
+                      });
+
+                      if (filtered.length === 0) {
+                        return (
+                          <div className="p-10 text-center space-y-3">
+                            <p className="text-[10px] font-bold text-wedding-navy/30 uppercase tracking-widest">
+                              {chatSearchQuery ? "AUCUN RÉSULTAT" : "AUCUNE DISCUSSION"}
+                            </p>
+                            <p className="text-[9px] text-wedding-navy/20 italic">
+                              {chatSearchQuery ? "Essayez un autre nom" : "Utilisez la barre de recherche pour commencer à parler"}
+                            </p>
                           </div>
-                          <div className={`text-[10px] uppercase font-bold tracking-widest mt-1.5 opacity-40 truncate ${chatProfile?.id === p.id ? 'text-white/60' : 'text-wedding-navy/60'}`}>
-                            Dernier message...
+                        );
+                      }
+
+                      return filtered.map(p => {
+                        const assignedS = shadchans.find(s => s.id === p.assignedShadchanId);
+                        return (
+                          <div
+                            key={p.id}
+                            onClick={() => {
+                              setChatProfile(p);
+                              // When selecting a profile from search, clear search to see them in the "active" list next time?
+                              // Or maybe keep it. The user might want to search for several.
+                            }}
+                            className={`p-5 border-b border-wedding-navy/5 cursor-pointer transition-all duration-300 ${chatProfile?.id === p.id ? 'bg-wedding-navy text-white shadow-xl scale-[1.02] relative z-10' : 'hover:bg-white/60'}`}
+                          >
+                            <div className="flex justify-between items-start">
+                              <div className={`font-bold text-sm leading-tight ${chatProfile?.id === p.id ? 'text-white' : 'text-wedding-navy'}`}>{p.firstName} {p.lastName}</div>
+                              {assignedS && (
+                                <div className={`text-[8px] px-1.5 py-0.5 rounded uppercase font-bold tracking-tighter ${chatProfile?.id === p.id ? 'bg-white/20 text-white' : 'bg-wedding-gold/20 text-wedding-gold'}`}>
+                                  {assignedS.name.split(' ')[0]}
+                                </div>
+                              )}
+                            </div>
+                            <div className={`text-[10px] uppercase font-bold tracking-widest mt-1.5 opacity-40 truncate ${chatProfile?.id === p.id ? 'text-white/60' : 'text-wedding-navy/60'}`}>
+                              {idsWithMessages.includes(p.id) ? "Voir la discussion" : "Démarrer une discussion"}
+                            </div>
                           </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      });
+                    })()}
                   </div>
                 </div>
 

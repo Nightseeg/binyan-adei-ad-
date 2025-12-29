@@ -57,6 +57,11 @@ export interface Profile {
   community?: string;
   selfDescription?: string;
   rabbanimContacts?: string;
+  primarySchool?: string;
+  middleSchool?: string;
+  highSchool?: string;
+  ravYeshiva?: string;
+  ravKehila?: string;
   schoolCareer?: string;
   yeshivaKtana?: string;
   yeshivaGdola?: string;
@@ -77,6 +82,14 @@ export interface Profile {
   searchPhone?: string;
   searchTraits?: string;
   searchPriorities?: string;
+  personalTraitsDetails?: string;
+  personalClothingDetails?: string;
+  personalPhoneDetails?: string;
+  searchFamilyDetails?: string;
+  searchClothingDetails?: string;
+  searchPhoneDetails?: string;
+  searchTraitsDetails?: string;
+  searchPrioritiesDetails?: string;
 }
 
 export interface Reference {

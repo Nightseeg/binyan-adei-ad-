@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Profile } from '../types';
 import { api } from '../services/dataService';
 import RegistrationForm from './RegistrationForm';
-import { MessageCircle, User, LogOut, Send, Loader2 } from 'lucide-react';
+import { MessageCircle, User, LogOut, Send, Loader2, X, Phone, Mail, MapPin, Clock } from 'lucide-react';
 
 interface CandidatePortalProps {
     candidate: Profile;
@@ -17,14 +17,23 @@ const CandidatePortal: React.FC<CandidatePortalProps> = ({ candidate, onLogout, 
     const [newMessage, setNewMessage] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [initialLoadComplete, setInitialLoadComplete] = useState(false);
+    const [showShadchanDetails, setShowShadchanDetails] = useState(false);
 
     useEffect(() => {
         const loadShadchan = async () => {
-            if (candidate.assignedShadchanId) {
-                const sp = await api.getShadchanProfile(candidate.assignedShadchanId);
+            // Try to load assigned shadchan, otherwise load default/admin (ID 1)
+            const idToLoad = candidate.assignedShadchanId || 1;
+            try {
+                const sp = await api.getShadchanProfile(idToLoad);
                 setShadchanProfile(sp);
-            } else {
-                setShadchanProfile(null);
+            } catch (e) {
+                console.error("Could not load shadchan profile", e);
+                // Fallback placeholder if even ID 1 fails
+                setShadchanProfile({
+                    name: "Support Lev Echad",
+                    role: "Administration",
+                    image_url: null
+                });
             }
             setInitialLoadComplete(true);
         };
@@ -32,16 +41,15 @@ const CandidatePortal: React.FC<CandidatePortalProps> = ({ candidate, onLogout, 
     }, [candidate.assignedShadchanId]);
 
     useEffect(() => {
-        if (activeTab === 'messages' && candidate.assignedShadchanId) {
+        if (activeTab === 'messages') {
             loadMessages();
             // Poll for new messages every 10s
             const interval = setInterval(loadMessages, 10000);
             return () => clearInterval(interval);
         }
-    }, [activeTab, candidate.assignedShadchanId]);
+    }, [activeTab, candidate.id]);
 
     const loadMessages = async () => {
-        if (!candidate.assignedShadchanId) return;
         try {
             const msgs = await api.getMessages(candidate.id);
             setMessages(msgs || []);
@@ -51,7 +59,7 @@ const CandidatePortal: React.FC<CandidatePortalProps> = ({ candidate, onLogout, 
     };
 
     const handleSendMessage = async () => {
-        if (!newMessage.trim() || !candidate.assignedShadchanId) return;
+        if (!newMessage.trim()) return;
         setIsLoading(true);
         try {
             await api.sendMessage({
@@ -72,14 +80,14 @@ const CandidatePortal: React.FC<CandidatePortalProps> = ({ candidate, onLogout, 
     return (
         <div className="min-h-screen bg-transparent flex flex-col font-sans text-wedding-navy">
             {/* Header */}
-            <header className="glass-nav fixed top-0 w-full z-50 px-8 py-4 flex justify-between items-center shadow-lg shadow-wedding-navy/5">
-                <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-wedding-navy rounded-2xl flex items-center justify-center text-wedding-gold font-serif font-bold text-2xl shadow-xl border border-wedding-gold/20 shadow-wedding-navy/20">
+            <header className="glass-nav fixed top-0 w-full z-50 px-4 md:px-8 py-3 md:py-4 flex justify-between items-center shadow-lg shadow-wedding-navy/5">
+                <div className="flex items-center gap-3 md:gap-4">
+                    <div className="w-10 h-10 md:w-12 md:h-12 bg-wedding-navy rounded-2xl flex items-center justify-center text-wedding-gold font-serif font-bold text-xl md:text-2xl shadow-xl border border-wedding-gold/20 shadow-wedding-navy/20">
                         {candidate.firstName.charAt(0)}
                     </div>
                     <div>
-                        <h1 className="font-serif font-bold text-xl text-wedding-navy leading-tight">Bonjour, {candidate.firstName}</h1>
-                        <p className="text-[10px] text-wedding-gold font-bold tracking-[0.2em] uppercase">Mon Espace Personnel</p>
+                        <h1 className="font-serif font-bold text-lg md:text-xl text-wedding-navy leading-tight">Bonjour, {candidate.firstName}</h1>
+                        <p className="text-[8px] md:text-[10px] text-wedding-gold font-bold tracking-[0.1em] md:tracking-[0.2em] uppercase">Mon Espace Personnel</p>
                     </div>
                 </div>
                 <button
@@ -92,20 +100,20 @@ const CandidatePortal: React.FC<CandidatePortalProps> = ({ candidate, onLogout, 
             </header>
 
             {/* Main Content */}
-            <main className="flex-1 max-w-6xl mx-auto w-full p-6 py-8 pt-28">
+            <main className="flex-1 max-w-6xl mx-auto w-full p-4 md:p-6 py-6 md:py-8 pt-24 md:pt-28">
 
                 {/* Navigation Tabs */}
-                <div className="flex p-1.5 bg-white/50 backdrop-blur-md rounded-2xl border border-white/50 mb-10 w-fit shadow-xl shadow-wedding-navy/5">
+                <div className="flex p-1 bg-white/50 backdrop-blur-md rounded-2xl border border-white/50 mb-6 md:mb-10 w-full sm:w-fit shadow-xl shadow-wedding-navy/5">
                     <button
                         onClick={() => setActiveTab('messages')}
-                        className={`flex items-center gap-3 px-8 py-3 rounded-xl text-sm font-bold transition-all duration-300 ${activeTab === 'messages' ? 'bg-wedding-navy text-wedding-gold shadow-2xl' : 'text-wedding-navy/60 hover:text-wedding-navy hover:bg-white/50'}`}
+                        className={`flex-1 sm:flex-none flex items-center justify-center gap-2 md:gap-3 px-4 md:px-8 py-2.5 md:py-3 rounded-xl text-xs md:text-sm font-bold transition-all duration-300 ${activeTab === 'messages' ? 'bg-wedding-navy text-wedding-gold shadow-2xl' : 'text-wedding-navy/60 hover:text-wedding-navy hover:bg-white/50'}`}
                     >
                         <MessageCircle className="w-4 h-4" />
-                        Mes Messages
+                        Messages
                     </button>
                     <button
                         onClick={() => setActiveTab('profile')}
-                        className={`flex items-center gap-3 px-8 py-3 rounded-xl text-sm font-bold transition-all duration-300 ${activeTab === 'profile' ? 'bg-wedding-navy text-wedding-gold shadow-2xl' : 'text-wedding-navy/60 hover:text-wedding-navy hover:bg-white/50'}`}
+                        className={`flex-1 sm:flex-none flex items-center justify-center gap-2 md:gap-3 px-4 md:px-8 py-2.5 md:py-3 rounded-xl text-xs md:text-sm font-bold transition-all duration-300 ${activeTab === 'profile' ? 'bg-wedding-navy text-wedding-gold shadow-2xl' : 'text-wedding-navy/60 hover:text-wedding-navy hover:bg-white/50'}`}
                     >
                         <User className="w-4 h-4" />
                         Mon Profil
@@ -113,24 +121,34 @@ const CandidatePortal: React.FC<CandidatePortalProps> = ({ candidate, onLogout, 
                 </div>
 
                 {activeTab === 'messages' ? (
-                    <div className="glass-card rounded-3xl overflow-hidden h-[600px] flex flex-col shadow-2xl shadow-wedding-navy/10 animate-fade-in">
-                        <div className="p-6 border-b border-wedding-navy/5 bg-white/50 backdrop-blur-sm flex items-center justify-between">
-                            <div className="flex items-center gap-4">
-                                <div className="w-12 h-12 rounded-full bg-wedding-navy/5 flex items-center justify-center border-2 border-white shadow-inner overflow-hidden">
-                                    {shadchanProfile?.image_url ?
-                                        <img src={shadchanProfile.image_url} alt="Shadchan" className="w-full h-full object-cover" /> :
-                                        <div className="text-xl font-serif font-bold text-wedding-navy">{shadchanProfile?.name?.charAt(0) || 'S'}</div>
-                                    }
+                    <div className="glass-card rounded-3xl overflow-hidden h-[500px] md:h-[600px] flex flex-col shadow-2xl shadow-wedding-navy/10 animate-fade-in">
+                        <div className="p-4 md:p-6 border-b border-wedding-navy/5 bg-white/50 backdrop-blur-sm flex items-center justify-between">
+                            <div
+                                className="flex items-center gap-4 cursor-pointer hover:opacity-80 transition-opacity"
+                                onClick={() => setShowShadchanDetails(true)}
+                            >
+                                <div className="relative">
+                                    <div className="w-12 h-12 rounded-full bg-wedding-navy/5 flex items-center justify-center border-2 border-white shadow-inner overflow-hidden">
+                                        {shadchanProfile?.image_url ?
+                                            <img src={shadchanProfile.image_url} alt="Shadchan" className="w-full h-full object-cover" /> :
+                                            <div className="text-xl font-serif font-bold text-wedding-navy">{shadchanProfile?.name?.charAt(0) || 'S'}</div>
+                                        }
+                                    </div>
+                                    <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
                                 </div>
                                 <div>
-                                    <h3 className="font-serif font-bold text-wedding-navy text-lg">{shadchanProfile?.name || 'Votre Shadchan'}</h3>
-                                    <p className="text-[10px] text-wedding-gold font-bold tracking-widest uppercase">{shadchanProfile?.role || 'Conciergerie Privée'}</p>
+                                    <h3 className="font-serif font-bold text-wedding-navy text-lg leading-none mb-1">{shadchanProfile?.name || 'Votre Shadchan'}</h3>
+                                    <div className="flex items-center gap-2">
+                                        <p className="text-[10px] text-wedding-gold font-bold tracking-widest uppercase">{shadchanProfile?.role || 'Conciergerie Privée'}</p>
+                                        <span className="text-[10px] text-wedding-navy/40">•</span>
+                                        <p className="text-[10px] text-green-600 font-bold">En ligne</p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
-                        <div className="flex-1 overflow-y-auto p-8 space-y-6 bg-white/30 backdrop-blur-sm relative">
-                            {(!shadchanProfile && initialLoadComplete) ? (
+                        <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-4 md:space-y-6 bg-white/30 backdrop-blur-sm relative">
+                            {(!shadchanProfile && messages.filter(m => m.direction === 'FROM_SHADCHAN').length === 0 && initialLoadComplete) ? (
                                 <div className="absolute inset-0 z-10 bg-white/60 backdrop-blur-md flex flex-col items-center justify-center text-center p-8">
                                     <div className="w-24 h-24 bg-wedding-navy rounded-full flex items-center justify-center mb-6 shadow-2xl shadow-wedding-navy/20 animate-pulse">
                                         <Loader2 className="w-10 h-10 text-wedding-gold animate-spin" />
@@ -165,7 +183,7 @@ const CandidatePortal: React.FC<CandidatePortalProps> = ({ candidate, onLogout, 
                             ) : (
                                 messages.map(msg => (
                                     <div key={msg.id} className={`flex ${msg.direction === 'FROM_CANDIDATE' ? 'justify-end' : 'justify-start'}`}>
-                                        <div className={`max-w-[75%] p-5 rounded-3xl text-sm shadow-xl ${msg.direction === 'FROM_CANDIDATE' ?
+                                        <div className={`max-w-[85%] md:max-w-[75%] p-4 md:p-5 rounded-3xl text-sm shadow-xl ${msg.direction === 'FROM_CANDIDATE' ?
                                             'bg-wedding-navy text-white rounded-br-none shadow-wedding-navy/20' :
                                             'bg-white text-wedding-navy rounded-bl-none border border-wedding-navy/5 shadow-black/5'}`}>
                                             <p className="leading-relaxed">{msg.content}</p>
@@ -178,23 +196,23 @@ const CandidatePortal: React.FC<CandidatePortalProps> = ({ candidate, onLogout, 
                             )}
                         </div>
 
-                        <div className="p-6 bg-white backdrop-blur-md border-t border-wedding-navy/5 relative z-20">
-                            <div className="flex gap-3">
+                        <div className="p-4 md:p-6 bg-white backdrop-blur-md border-t border-wedding-navy/5 relative z-20">
+                            <div className="flex gap-2 md:gap-3">
                                 <input
                                     type="text"
                                     value={newMessage}
                                     onChange={(e) => setNewMessage(e.target.value)}
-                                    placeholder={!shadchanProfile ? "Messagerie indisponible..." : `Écrivez à ${shadchanProfile?.name || 'votre shadchan'}...`}
-                                    disabled={!shadchanProfile || isLoading}
-                                    className="flex-1 px-6 py-4 bg-wedding-navy/5 border border-wedding-navy/10 rounded-2xl focus:outline-none focus:border-wedding-gold transition-all font-medium text-wedding-navy placeholder:text-wedding-navy/30 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    placeholder={(!shadchanProfile && messages.length === 0) ? "Messagerie indisponible..." : "Écrivez votre message..."}
+                                    disabled={isLoading}
+                                    className="flex-1 px-4 md:px-6 py-3 md:py-4 bg-wedding-navy/5 border border-wedding-navy/10 rounded-2xl focus:outline-none focus:border-wedding-gold transition-all font-medium text-sm md:text-base text-wedding-navy placeholder:text-wedding-navy/30 disabled:opacity-50 disabled:cursor-not-allowed"
                                     onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
                                 />
                                 <button
                                     onClick={handleSendMessage}
-                                    disabled={!shadchanProfile || isLoading || !newMessage.trim()}
-                                    className="p-4 bg-wedding-navy text-wedding-gold rounded-2xl hover:bg-wedding-navy/90 transition-all shadow-xl shadow-wedding-navy/20 disabled:opacity-50 disabled:cursor-not-allowed transform hover:-translate-y-1"
+                                    disabled={isLoading || !newMessage.trim()}
+                                    className="p-3 md:p-4 bg-wedding-navy text-wedding-gold rounded-2xl hover:bg-wedding-navy/90 transition-all shadow-xl shadow-wedding-navy/20 disabled:opacity-50 disabled:cursor-not-allowed transform hover:-translate-y-1"
                                 >
-                                    {isLoading ? <Loader2 className="w-6 h-6 animate-spin" /> : <Send className="w-6 h-6" />}
+                                    {isLoading ? <Loader2 className="w-5 h-5 md:w-6 md:h-6 animate-spin" /> : <Send className="w-5 h-5 md:w-6 md:h-6" />}
                                 </button>
                             </div>
                         </div>
@@ -213,6 +231,85 @@ const CandidatePortal: React.FC<CandidatePortalProps> = ({ candidate, onLogout, 
                     </div>
                 )}
             </main>
+            {/* Shadchan Details Modal */}
+            {showShadchanDetails && shadchanProfile && (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-wedding-navy/40 backdrop-blur-md animate-fade-in">
+                    <div className="bg-white rounded-[2rem] shadow-2xl max-w-sm w-full overflow-hidden relative border border-wedding-navy/5 animate-scale-in">
+                        <button
+                            onClick={() => setShowShadchanDetails(false)}
+                            className="absolute top-4 right-4 p-2.5 bg-white/10 hover:bg-white/20 rounded-full transition-all duration-300 z-50 group border border-white/5"
+                        >
+                            <X className="w-4 h-4 text-white/90 group-hover:text-white group-hover:rotate-90 transition-transform" />
+                        </button>
+
+                        <div className="h-32 bg-wedding-navy relative overflow-hidden">
+                            {/* Decorative Pattern Overlay */}
+                            <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '24px 24px' }}></div>
+                            <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/20"></div>
+
+                            <div className="absolute -bottom-12 left-1/2 -translate-x-1/2 z-20">
+                                <div className="w-24 h-24 rounded-full border-[4px] border-white shadow-xl overflow-hidden bg-white flex items-center justify-center ring-1 ring-black/5">
+                                    {shadchanProfile.image_url ?
+                                        <img src={shadchanProfile.image_url} alt="Profile" className="w-full h-full object-cover" /> :
+                                        <span className="text-3xl font-serif font-bold text-wedding-navy">{shadchanProfile.name?.charAt(0)}</span>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="pt-16 pb-8 px-8 text-center bg-white relative z-10">
+                            <h2 className="text-2xl font-serif font-bold text-wedding-navy mb-1">{shadchanProfile.name}</h2>
+                            <p className="text-[10px] font-bold text-wedding-gold uppercase tracking-[0.2em] mb-8 border-b border-wedding-navy/5 pb-4 inline-block px-4">{shadchanProfile.role || 'Shadchan Senior'}</p>
+
+                            <div className="space-y-4 text-left">
+                                {shadchanProfile.email && (
+                                    <div className="flex items-center gap-4 p-4 bg-wedding-navy/5 rounded-2xl border border-wedding-navy/5 hover:border-wedding-gold/30 transition-colors group">
+                                        <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm text-wedding-navy group-hover:scale-110 transition-transform duration-300">
+                                            <Mail className="w-5 h-5" />
+                                        </div>
+                                        <div className="overflow-hidden">
+                                            <p className="text-[9px] font-bold text-wedding-navy/40 uppercase tracking-widest mb-0.5">Email</p>
+                                            <p className="text-sm font-bold text-wedding-navy truncate">{shadchanProfile.email}</p>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {shadchanProfile.phone && (
+                                    <div className="flex items-center gap-4 p-4 bg-wedding-navy/5 rounded-2xl border border-wedding-navy/5 hover:border-wedding-gold/30 transition-colors group">
+                                        <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm text-wedding-navy group-hover:scale-110 transition-transform duration-300">
+                                            <Phone className="w-5 h-5" />
+                                        </div>
+                                        <div>
+                                            <p className="text-[9px] font-bold text-wedding-navy/40 uppercase tracking-widest mb-0.5">Téléphone</p>
+                                            <p className="text-sm font-bold text-wedding-navy">{shadchanProfile.phone}</p>
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div className="flex items-center gap-4 p-4 bg-green-50/50 rounded-2xl border border-green-100/50">
+                                    <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm text-green-600">
+                                        <div className="relative">
+                                            <div className="absolute right-0 top-0 w-2 h-2 bg-green-500 rounded-full animate-ping"></div>
+                                            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <p className="text-[9px] font-bold text-green-800/40 uppercase tracking-widest mb-0.5">Statut</p>
+                                        <p className="text-sm font-bold text-green-700">Disponible</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button
+                                onClick={() => setShowShadchanDetails(false)}
+                                className="mt-8 w-full py-4 bg-wedding-navy text-white rounded-2xl font-bold uppercase tracking-widest text-xs hover:bg-wedding-navy/90 transition-all shadow-xl shadow-wedding-navy/20 active:scale-95 border border-wedding-gold/10"
+                            >
+                                Fermer la fiche
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

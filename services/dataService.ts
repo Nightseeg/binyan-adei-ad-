@@ -38,6 +38,38 @@ const mapProfileFromDB = (p: any): Profile => ({
     community: p.community,
     selfDescription: p.self_description,
     rabbanimContacts: p.rabbanim_contacts,
+    primarySchool: p.primary_school,
+    middleSchool: p.middle_school,
+    highSchool: p.high_school,
+    ravYeshiva: p.rav_yeshiva,
+    ravKehila: p.rav_kehila,
+    yeshivaKtana: p.yeshiva_ktana,
+    yeshivaGdola: p.yeshiva_gdola,
+    currentOccupation: p.current_occupation,
+    qualifications: p.qualifications,
+    isSmoking: p.is_smoking,
+    smokingDetails: p.smoking_details,
+    skinColor: p.skin_color,
+    eyeColor: p.eye_color,
+    hairColor: p.hair_color,
+    ambitionCareer: p.ambition_career,
+    ambitionLocation: p.ambition_location,
+    personalTraits: p.personal_traits,
+    personalClothing: p.personal_clothing,
+    personalPhone: p.personal_phone,
+    searchFamily: p.search_family,
+    searchClothing: p.search_clothing,
+    searchPhone: p.search_phone,
+    searchTraits: p.search_traits,
+    searchPriorities: p.search_priorities,
+    personalTraitsDetails: p.personal_traits_details,
+    personalClothingDetails: p.personal_clothing_details,
+    personalPhoneDetails: p.personal_phone_details,
+    searchFamilyDetails: p.search_family_details,
+    searchClothingDetails: p.search_clothing_details,
+    searchPhoneDetails: p.search_phone_details,
+    searchTraitsDetails: p.search_traits_details,
+    searchPrioritiesDetails: p.search_priorities_details,
 });
 
 const mapProfileToDB = (p: Partial<Profile>) => {
@@ -73,6 +105,38 @@ const mapProfileToDB = (p: Partial<Profile>) => {
     if (p.community) dbProfile.community = p.community;
     if (p.selfDescription) dbProfile.self_description = p.selfDescription;
     if (p.rabbanimContacts) dbProfile.rabbanim_contacts = p.rabbanimContacts;
+    if (p.primarySchool) dbProfile.primary_school = p.primarySchool;
+    if (p.middleSchool) dbProfile.middle_school = p.middleSchool;
+    if (p.highSchool) dbProfile.high_school = p.highSchool;
+    if (p.ravYeshiva) dbProfile.rav_yeshiva = p.ravYeshiva;
+    if (p.ravKehila) dbProfile.rav_kehila = p.ravKehila;
+    if (p.yeshivaKtana) dbProfile.yeshiva_ktana = p.yeshivaKtana;
+    if (p.yeshivaGdola) dbProfile.yeshiva_gdola = p.yeshivaGdola;
+    if (p.currentOccupation) dbProfile.current_occupation = p.currentOccupation;
+    if (p.qualifications) dbProfile.qualifications = p.qualifications;
+    if (p.isSmoking) dbProfile.is_smoking = p.isSmoking;
+    if (p.smokingDetails) dbProfile.smoking_details = p.smokingDetails;
+    if (p.skinColor) dbProfile.skin_color = p.skinColor;
+    if (p.eyeColor) dbProfile.eye_color = p.eyeColor;
+    if (p.hairColor) dbProfile.hair_color = p.hairColor;
+    if (p.ambitionCareer) dbProfile.ambition_career = p.ambitionCareer;
+    if (p.ambitionLocation) dbProfile.ambition_location = p.ambitionLocation;
+    if (p.personalTraits) dbProfile.personal_traits = p.personalTraits;
+    if (p.personalClothing) dbProfile.personal_clothing = p.personalClothing;
+    if (p.personalPhone) dbProfile.personal_phone = p.personalPhone;
+    if (p.searchFamily) dbProfile.search_family = p.searchFamily;
+    if (p.searchClothing) dbProfile.search_clothing = p.searchClothing;
+    if (p.searchPhone) dbProfile.search_phone = p.searchPhone;
+    if (p.searchTraits) dbProfile.search_traits = p.searchTraits;
+    if (p.searchPriorities) dbProfile.search_priorities = p.searchPriorities;
+    if (p.personalTraitsDetails) dbProfile.personal_traits_details = p.personalTraitsDetails;
+    if (p.personalClothingDetails) dbProfile.personal_clothing_details = p.personalClothingDetails;
+    if (p.personalPhoneDetails) dbProfile.personal_phone_details = p.personalPhoneDetails;
+    if (p.searchFamilyDetails) dbProfile.search_family_details = p.searchFamilyDetails;
+    if (p.searchClothingDetails) dbProfile.search_clothing_details = p.searchClothingDetails;
+    if (p.searchPhoneDetails) dbProfile.search_phone_details = p.searchPhoneDetails;
+    if (p.searchTraitsDetails) dbProfile.search_traits_details = p.searchTraitsDetails;
+    if (p.searchPrioritiesDetails) dbProfile.search_priorities_details = p.searchPrioritiesDetails;
     
     // Remove camelCase keys to be clean (optional but good)
     delete dbProfile.firstName;
@@ -105,6 +169,38 @@ const mapProfileToDB = (p: Partial<Profile>) => {
     delete dbProfile.community;
     delete dbProfile.selfDescription;
     delete dbProfile.rabbanimContacts;
+    delete dbProfile.primarySchool;
+    delete dbProfile.middleSchool;
+    delete dbProfile.highSchool;
+    delete dbProfile.ravYeshiva;
+    delete dbProfile.ravKehila;
+    delete dbProfile.yeshivaKtana;
+    delete dbProfile.yeshivaGdola;
+    delete dbProfile.currentOccupation;
+    delete dbProfile.qualifications;
+    delete dbProfile.isSmoking;
+    delete dbProfile.smokingDetails;
+    delete dbProfile.skinColor;
+    delete dbProfile.eyeColor;
+    delete dbProfile.hairColor;
+    delete dbProfile.ambitionCareer;
+    delete dbProfile.ambitionLocation;
+    delete dbProfile.personalTraits;
+    delete dbProfile.personalClothing;
+    delete dbProfile.personalPhone;
+    delete dbProfile.searchFamily;
+    delete dbProfile.searchClothing;
+    delete dbProfile.searchPhone;
+    delete dbProfile.searchTraits;
+    delete dbProfile.searchPriorities;
+    delete dbProfile.personalTraitsDetails;
+    delete dbProfile.personalClothingDetails;
+    delete dbProfile.personalPhoneDetails;
+    delete dbProfile.searchFamilyDetails;
+    delete dbProfile.searchClothingDetails;
+    delete dbProfile.searchPhoneDetails;
+    delete dbProfile.searchTraitsDetails;
+    delete dbProfile.searchPrioritiesDetails;
     
     return dbProfile;
 };
@@ -329,10 +425,17 @@ export const api = {
             .update({ is_read: true })
             .eq('profile_id', profileId)
             .eq('direction', 'FROM_CANDIDATE');
-        if (error) throw error;
-    },
+    if (error) throw error;
+  },
+  getProfileIdsWithMessages: async () => {
+    const { data, error } = await supabase
+      .from('messages')
+      .select('profile_id');
+    if (error) throw error;
+    return Array.from(new Set(data.map((m: any) => m.profile_id)));
+  },
 
-    // Events & Blog (Community Pages)
+  // Events & Blog (Community Pages)
     getEvents: async () => {
         const { data, error } = await supabase.from('events').select('*').order('date', { ascending: true });
         if (error) {

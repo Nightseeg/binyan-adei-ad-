@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Match, MatchStatus, Profile, Gender } from '../types';
-import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
+import { DragDropContext, Droppable, Draggable, DropResult, DroppableProps } from '@hello-pangea/dnd';
 import { MoreHorizontal, Clock, MessageCircle, Heart, Trash2, Archive, RefreshCcw, Kanban } from 'lucide-react';
 
 interface MatchPipelineProps {
@@ -8,6 +8,25 @@ interface MatchPipelineProps {
     profiles: Profile[];
     onUpdateStatus: (matchId: string, newStatus: MatchStatus) => void;
 }
+
+// Fix for React Strict Mode
+const StrictModeDroppable = ({ children, ...props }: DroppableProps) => {
+    const [enabled, setEnabled] = useState(false);
+
+    useEffect(() => {
+        const animation = requestAnimationFrame(() => setEnabled(true));
+        return () => {
+            cancelAnimationFrame(animation);
+            setEnabled(false);
+        };
+    }, []);
+
+    if (!enabled) {
+        return null;
+    }
+
+    return <Droppable {...props}>{children}</Droppable>;
+};
 
 const MatchPipeline: React.FC<MatchPipelineProps> = ({ matches, profiles, onUpdateStatus }) => {
     const [showArchived, setShowArchived] = useState(false);
@@ -68,7 +87,7 @@ const MatchPipeline: React.FC<MatchPipelineProps> = ({ matches, profiles, onUpda
                                         </h3>
                                     </div>
 
-                                    <Droppable droppableId={column.id}>
+                                    <StrictModeDroppable droppableId={column.id}>
                                         {(provided, snapshot) => (
                                             <div
                                                 {...provided.droppableProps}
@@ -155,7 +174,7 @@ const MatchPipeline: React.FC<MatchPipelineProps> = ({ matches, profiles, onUpda
                                                 {provided.placeholder}
                                             </div>
                                         )}
-                                    </Droppable>
+                                    </StrictModeDroppable>
                                 </div>
                             );
                         })}

@@ -100,9 +100,9 @@ const CandidateLogin: React.FC<CandidateLoginProps> = ({ onLoginSuccess, onCance
 
             <button
                 onClick={onCancel}
-                className="fixed bottom-8 left-24 text-sm text-wedding-navy hover:text-white hover:bg-wedding-navy font-bold flex items-center gap-2 transition-all bg-white/80 px-5 py-2.5 rounded-full backdrop-blur-md shadow-lg border border-white/50 z-50 group"
+                className="fixed bottom-6 left-6 md:bottom-8 md:left-24 text-xs md:text-sm text-wedding-navy hover:text-white hover:bg-wedding-navy font-bold flex items-center gap-2 transition-all bg-white/80 px-4 py-2 md:px-5 md:py-2.5 rounded-full backdrop-blur-md shadow-lg border border-white/50 z-50 group"
             >
-                <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" /> Retour à l'accueil
+                <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" /> <span className="hidden xs:inline">Retour à l'accueil</span><span className="xs:hidden">Retour</span>
             </button>
         </div>
     );
