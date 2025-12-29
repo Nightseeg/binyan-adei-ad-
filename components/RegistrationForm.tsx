@@ -30,27 +30,40 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSave, onCancel, i
     references: []
   });
 
+  const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  const isValidPhone = (phone: string) => /^[\d\s.+()-]{8,20}$/.test(phone);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
+
+    // Restrictions on input
+    if (['lastName', 'firstName', 'fatherName', 'motherName'].includes(name)) {
+      if (/[0-9]/.test(value)) return; // No numbers in names
+    }
+
+    if (['contactPhone', 'fatherPhone', 'motherPhone'].includes(name)) {
+      if (value !== '' && !/^[\d\s.+()-]+$/.test(value)) return; // Only phone characters
+    }
+
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   const validateStep = (step: number): boolean => {
     switch (step) {
       case 1:
-        return !!(formData.lastName && formData.firstName && formData.birthDate);
+        return !!(formData.lastName && formData.firstName && formData.birthDate && formData.contactPhone && isValidPhone(formData.contactPhone) && formData.height && formData.skinColor && formData.eyeColor && formData.hairColor);
       case 2:
-        return !!(formData.fatherName && formData.motherName);
+        return !!(formData.fatherName && formData.motherName && formData.fatherPhone && formData.motherPhone && isValidPhone(formData.fatherPhone!) && isValidPhone(formData.motherPhone!));
       case 3:
-        return !!(formData.familyDescription);
+        return !!(formData.schoolCareer && formData.yeshivaKtana && formData.yeshivaGdola && formData.currentOccupation);
       case 4:
-        return !!(formData.ambitions && formData.community);
+        return !!(formData.ambitionCareer && formData.ambitionLocation && formData.ambitions && formData.community);
       case 5:
-        return !!(formData.selfDescription);
+        return !!(formData.selfDescription && formData.isSmoking && formData.personalTraits && formData.personalClothing && formData.personalPhone);
       case 6:
-        return !!(formData.lookingFor);
+        return !!(formData.searchFamily && formData.searchClothing && formData.searchPhone && formData.searchTraits && formData.searchPriorities && formData.lookingFor);
       case 7:
-        return !!(formData.email && formData.accessCode);
+        return !!(formData.email && formData.accessCode && isValidEmail(formData.email));
       default:
         return false;
     }
@@ -58,7 +71,9 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSave, onCancel, i
 
   const handleNext = () => {
     if (!validateStep(currentStep)) {
-      alert("Veuillez remplir les champs obligatoires (*) avant de continuer.");
+      let msg = "Veuillez remplir les champs obligatoires (*) avec des informations valides.";
+      if (currentStep === 7 && formData.email && !isValidEmail(formData.email)) msg = "L'adresse email n'est pas valide.";
+      alert(msg);
       return;
     }
 
@@ -104,24 +119,59 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSave, onCancel, i
 
   const calculateAge = (birthDate: string) => {
     if (!birthDate) return 0;
-    const parts = birthDate.split('/');
-    if (parts.length !== 3) return 0;
-    const day = parseInt(parts[0]);
-    const month = parseInt(parts[1]);
-    const year = parseInt(parts[2]);
-    if (isNaN(day) || isNaN(month) || isNaN(year)) return 0;
+    const birth = new Date(birthDate);
+    if (isNaN(birth.getTime())) return 0;
     const today = new Date();
-    let age = today.getFullYear() - year;
-    const m = today.getMonth() - (month - 1);
-    if (m < 0 || (m === 0 && today.getDate() < day)) {
+    let age = today.getFullYear() - birth.getFullYear();
+    const m = today.getMonth() - birth.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
       age--;
     }
     return age;
   };
 
-  const inputClass = "mt-1 block w-full rounded-2xl border-wedding-navy/10 bg-white/50 px-5 py-3.5 text-wedding-navy placeholder:text-wedding-navy/20 focus:border-wedding-gold/50 focus:bg-white focus:ring-4 focus:ring-wedding-gold/5 transition-all duration-300 font-medium text-sm shadow-sm";
-  const areaClass = "mt-1 block w-full rounded-2xl border-wedding-navy/10 bg-white/50 px-5 py-4 text-wedding-navy placeholder:text-wedding-navy/20 focus:border-wedding-gold/50 focus:bg-white focus:ring-4 focus:ring-wedding-gold/5 transition-all duration-300 font-medium text-sm shadow-sm resize-none";
-  const labelClass = "block text-[11px] font-bold text-wedding-navy/60 uppercase tracking-[0.15em] mb-2 ml-1";
+  const inputClass = "mt-1 block w-full rounded-2xl border-2 border-wedding-navy/10 bg-white px-6 py-4 text-wedding-navy placeholder:text-wedding-navy/40 focus:border-wedding-gold/50 focus:ring-4 focus:ring-wedding-gold/5 transition-all duration-300 font-medium text-base shadow-sm";
+  const areaClass = "mt-1 block w-full rounded-2xl border-2 border-wedding-navy/10 bg-white px-6 py-5 text-wedding-navy placeholder:text-wedding-navy/40 focus:border-wedding-gold/50 focus:ring-4 focus:ring-wedding-gold/5 transition-all duration-300 font-medium text-base shadow-sm resize-none";
+  const labelClass = "block text-[13px] font-bold text-wedding-navy/80 uppercase tracking-[0.15em] mb-2.5 ml-1";
+
+  const QCMGroup = ({ label, name, options, multi = true }: { label: string, name: string, options: string[], multi?: boolean }) => {
+    const currentValues = (formData[name as keyof Profile] as string || '').split(',').filter(v => v);
+
+    const toggle = (opt: string) => {
+      let newValues: string[];
+      if (!multi) {
+        newValues = [opt];
+      } else {
+        if (currentValues.includes(opt)) {
+          newValues = currentValues.filter(v => v !== opt);
+        } else {
+          newValues = [...currentValues, opt];
+        }
+      }
+      setFormData(prev => ({ ...prev, [name]: newValues.join(',') }));
+    };
+
+    return (
+      <div className="space-y-4">
+        <label className={labelClass}>{label}</label>
+        <div className="flex flex-wrap gap-3">
+          {options.map(opt => (
+            <button
+              key={opt}
+              type="button"
+              onClick={() => toggle(opt)}
+              className={`px-6 py-3 rounded-xl border-2 transition-all duration-300 font-bold text-sm shadow-sm
+                ${currentValues.includes(opt)
+                  ? 'bg-wedding-navy border-wedding-navy text-white shadow-xl shadow-wedding-navy/20 scale-105'
+                  : 'bg-white border-wedding-navy/5 text-wedding-navy hover:border-wedding-gold/30 hover:bg-wedding-navy/[0.02]'}`}
+            >
+              {opt}
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  };
 
   const variants = {
     enter: (direction: number) => ({ x: direction > 0 ? 20 : -20, opacity: 0 }),
@@ -130,10 +180,10 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSave, onCancel, i
   };
 
   return (
-    <div className="bg-white rounded-[2rem] shadow-2xl border border-wedding-navy/5 overflow-hidden max-w-6xl mx-auto flex flex-col md:flex-row min-h-[700px] transition-all">
+    <div className="bg-white rounded-[2rem] shadow-2xl border border-wedding-navy/5 overflow-hidden max-w-[1400px] w-full mx-auto flex flex-col md:flex-row min-h-[850px] transition-all">
 
       {/* Sidebar Navigation */}
-      <div className="bg-wedding-navy text-white p-10 md:w-80 flex flex-col pt-16 relative overflow-hidden flex-shrink-0">
+      <div className="bg-wedding-navy text-white p-12 md:w-96 flex flex-col pt-20 relative overflow-hidden flex-shrink-0">
         <div className="absolute top-0 left-0 w-full h-full opacity-5 pointer-events-none">
           <div className="absolute -top-24 -left-24 w-64 h-64 bg-wedding-gold rounded-full blur-[100px]"></div>
           <div className="absolute -bottom-24 -right-24 w-64 h-64 bg-wedding-gold rounded-full blur-[100px]"></div>
@@ -144,23 +194,23 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSave, onCancel, i
             <ChevronLeft className="w-4 h-4 text-wedding-gold" /> Accueil
           </button>
 
-          <h2 className="text-3xl font-serif font-bold mb-2 leading-tight">Lev Echad</h2>
-          <p className="text-white/40 text-[10px] font-bold uppercase tracking-[0.3em] mb-12 italic">Votre futur commence ici</p>
+          <h2 className="text-4xl font-serif font-bold mb-3 leading-tight">Lev Echad</h2>
+          <p className="text-white/40 text-[11px] font-bold uppercase tracking-[0.3em] mb-16 italic">Votre futur commence ici</p>
 
           <div className="space-y-4 flex-1">
             {STEPS.map((step) => {
               const isActive = currentStep === step.id;
               const isCompleted = currentStep > step.id;
               return (
-                <div key={step.id} className="flex items-start gap-4">
-                  <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-bold transition-all duration-500
+                <div key={step.id} className="flex items-start gap-5">
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-[11px] font-bold transition-all duration-500
                             ${isActive ? 'bg-wedding-gold text-wedding-navy shadow-[0_0_20px_rgba(212,175,55,0.4)] scale-110' :
                       isCompleted ? 'bg-white/10 text-wedding-gold' : 'text-white/20'}`}>
-                    {isCompleted ? <Check className="w-3.5 h-3.5" /> : step.id}
+                    {isCompleted ? <Check className="w-4 h-4" /> : step.id}
                   </div>
                   <div className="pt-0.5">
-                    <h3 className={`font-bold text-[10px] uppercase tracking-widest transition-colors ${isActive ? 'text-white' : 'text-white/20'}`}>{step.title}</h3>
-                    {isActive && <p className="text-[9px] text-wedding-gold italic mt-0.5 animate-pulse">{step.description}</p>}
+                    <h3 className={`font-bold text-[11px] uppercase tracking-widest transition-colors ${isActive ? 'text-white' : 'text-white/20'}`}>{step.title}</h3>
+                    {isActive && <p className="text-[10px] text-wedding-gold italic mt-1 animate-pulse">{step.description}</p>}
                   </div>
                 </div>
               );
@@ -216,8 +266,8 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSave, onCancel, i
                     <div>
                       <label className={labelClass}>Date de naissance *</label>
                       <div className="relative">
-                        <Calendar className="w-4 h-4 text-wedding-gold absolute left-4 top-1/2 -translate-y-1/2" />
-                        <input type="text" name="birthDate" value={formData.birthDate || ''} onChange={handleChange} className={`${inputClass} pl-12`} placeholder="JJ/MM/AAAA" />
+                        <Calendar className="w-4 h-4 text-wedding-gold absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" />
+                        <input type="date" name="birthDate" value={formData.birthDate || ''} onChange={handleChange} className={`${inputClass} pl-12`} />
                       </div>
                     </div>
                     <div>
@@ -227,11 +277,40 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSave, onCancel, i
                         <option value={Gender.FEMALE}>Femme</option>
                       </select>
                     </div>
+                    <div>
+                      <label className={labelClass}>Tél Personnel *</label>
+                      <div className="relative">
+                        <Phone className="w-4 h-4 text-wedding-gold absolute left-4 top-1/2 -translate-y-1/2" />
+                        <input type="text" name="contactPhone" value={formData.contactPhone || ''} onChange={handleChange} className={`${inputClass} pl-12`} placeholder="06 XX XX XX XX" />
+                      </div>
+                    </div>
                     <div className="md:col-span-2">
-                      <label className={labelClass}>Ville de résidence</label>
+                      <label className={labelClass}>Ville de résidence *</label>
                       <div className="relative">
                         <MapPin className="w-4 h-4 text-wedding-gold absolute left-4 top-1/2 -translate-y-1/2" />
                         <input type="text" name="city" value={formData.city || ''} onChange={handleChange} className={`${inputClass} pl-12`} placeholder="Ville actuelle" />
+                      </div>
+                    </div>
+
+                    <div className="md:col-span-2 border-t border-wedding-navy/5 pt-8 mt-4">
+                      <h4 className="text-[10px] font-bold text-wedding-navy/30 uppercase tracking-[0.2em] mb-6">Description Physique</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div>
+                          <label className={labelClass}>Taille (cm) *</label>
+                          <input type="text" name="height" value={formData.height || ''} onChange={handleChange} className={inputClass} placeholder="Ex: 175" />
+                        </div>
+                        <div>
+                          <label className={labelClass}>Couleur de peau *</label>
+                          <input type="text" name="skinColor" value={formData.skinColor || ''} onChange={handleChange} className={inputClass} placeholder="Clair, mat, etc." />
+                        </div>
+                        <div>
+                          <label className={labelClass}>Couleur des yeux *</label>
+                          <input type="text" name="eyeColor" value={formData.eyeColor || ''} onChange={handleChange} className={inputClass} placeholder="Bleus, marrons, etc." />
+                        </div>
+                        <div>
+                          <label className={labelClass}>Couleur des cheveux *</label>
+                          <input type="text" name="hairColor" value={formData.hairColor || ''} onChange={handleChange} className={inputClass} placeholder="Blonds, bruns, etc." />
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -251,16 +330,6 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSave, onCancel, i
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-8">
-                      <div>
-                        <label className={labelClass}>Tél Personnel</label>
-                        <div className="relative">
-                          <Phone className="w-4 h-4 text-wedding-gold absolute left-4 top-1/2 -translate-y-1/2" />
-                          <input type="text" name="contactPhone" value={formData.contactPhone || ''} onChange={handleChange} className={`${inputClass} pl-12`} placeholder="06 XX XX XX XX" />
-                        </div>
-                      </div>
-                    </div>
-
                     <div className="space-y-6">
                       <h4 className="text-[10px] font-bold text-wedding-navy/30 uppercase tracking-[0.2em] border-b border-wedding-navy/5 pb-2">Le Père</h4>
                       <div>
@@ -268,7 +337,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSave, onCancel, i
                         <input type="text" name="fatherName" value={formData.fatherName || ''} onChange={handleChange} className={inputClass} />
                       </div>
                       <div>
-                        <label className={labelClass}>Numéro du Père</label>
+                        <label className={labelClass}>Tél Père *</label>
                         <input type="text" name="fatherPhone" value={formData.fatherPhone || ''} onChange={handleChange} className={inputClass} />
                       </div>
                     </div>
@@ -276,11 +345,11 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSave, onCancel, i
                     <div className="space-y-6">
                       <h4 className="text-[10px] font-bold text-wedding-navy/30 uppercase tracking-[0.2em] border-b border-wedding-navy/5 pb-2">La Mère</h4>
                       <div>
-                        <label className={labelClass}>Prénom Mère & Nom de jeune fille *</label>
+                        <label className={labelClass}>Prénom & Nom fille Mère *</label>
                         <input type="text" name="motherName" value={formData.motherName || ''} onChange={handleChange} className={inputClass} />
                       </div>
                       <div>
-                        <label className={labelClass}>Numéro de la Mère</label>
+                        <label className={labelClass}>Tél Mère *</label>
                         <input type="text" name="motherPhone" value={formData.motherPhone || ''} onChange={handleChange} className={inputClass} />
                       </div>
                     </div>
@@ -301,37 +370,49 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSave, onCancel, i
                   </div>
 
                   <div className="space-y-8">
-                    <div>
-                      <label className={labelClass}>Résumé de votre parcours</label>
-                      <div className="bg-wedding-navy/[0.02] p-6 rounded-3xl border border-wedding-navy/5 mb-4">
-                        <p className="text-[10px] text-wedding-navy/50 font-medium italic">Précise ton primaire, collége - lycée ou yechiva ktana, puis le-(s) yechiva gdola ou tu as étudié, (ou les études que tu as faites / que tu fais)</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <label className={labelClass}>École Primaire / Collège / Lycée *</label>
+                        <input type="text" name="schoolCareer" value={formData.schoolCareer || ''} onChange={handleChange} className={inputClass} placeholder="Nom des établissements" />
                       </div>
-                      <textarea
-                        name="educationalPath"
-                        value={formData.educationalPath || ''}
-                        onChange={handleChange}
-                        rows={5}
-                        className={areaClass}
-                        placeholder="Ex: Yechiva Ktana ..., Yechiva Gdola ..., etc."
-                      />
+                      <div>
+                        <label className={labelClass}>Yéchiva Ktana / Séminaire *</label>
+                        <input type="text" name="yeshivaKtana" value={formData.yeshivaKtana || ''} onChange={handleChange} className={inputClass} />
+                      </div>
+                      <div>
+                        <label className={labelClass}>Yéchiva Gdola / Études Supérieures *</label>
+                        <input type="text" name="yeshivaGdola" value={formData.yeshivaGdola || ''} onChange={handleChange} className={inputClass} />
+                      </div>
+                      <div>
+                        <label className={labelClass}>Activité Actuelle *</label>
+                        <select name="currentOccupation" value={formData.currentOccupation || ''} onChange={handleChange} className={inputClass}>
+                          <option value="">Sélectionner...</option>
+                          <option value="Limoud">Limoud (Pleine journée)</option>
+                          <option value="Limoud & Travail">Limoud & Travail</option>
+                          <option value="Travail">Travail (Pleine journée)</option>
+                          <option value="Études">Études</option>
+                        </select>
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className={labelClass}>Diplômes / Formations *</label>
+                        <input type="text" name="qualifications" value={formData.qualifications || ''} onChange={handleChange} className={inputClass} />
+                      </div>
                     </div>
+
                     <div>
-                      <label className={labelClass}>Description famille *</label>
+                      <label className={labelClass}>Description famille (Facultatif)</label>
                       <div className="bg-wedding-navy/[0.02] p-6 rounded-3xl border border-wedding-navy/5 mb-4">
                         <ul className="text-[10px] text-wedding-navy/50 font-medium space-y-1.5 list-disc pl-4 italic">
-                          <li>1) Précise le nombres d'enfants dans la famille</li>
-                          <li>2) Tes parents sont mariés, divorcés, remariés...</li>
-                          <li>3) La profession de ton père et de ta mère</li>
-                          <li>4) Ce que font chacun de tes frères et soeurs : Leurs âges, Marié ou non, Si oui avec qui ? Ou ils habitent ? Avreh ou non ? etc.</li>
+                          <li>Nombre d'enfants, situation des parents, professions...</li>
                         </ul>
                       </div>
                       <textarea
                         name="familyDescription"
                         value={formData.familyDescription || ''}
                         onChange={handleChange}
-                        rows={8}
+                        rows={6}
                         className={areaClass}
-                        placeholder="Détaillez ici la situation de votre famille..."
+                        placeholder="Détaillez ici la situation de votre famille (Optionnel)..."
                       />
                     </div>
                   </div>
@@ -350,36 +431,41 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSave, onCancel, i
                     </div>
                   </div>
 
-                  <div className="space-y-8">
+                  <div className="space-y-12">
+                    <QCMGroup
+                      label="Projet de vie / Carrière *"
+                      name="ambitionCareer"
+                      options={["Avrekh (Plein temps)", "Travail (Plein temps)", "Mi-temps", "Avrekh les premières années"]}
+                    />
+
+                    <QCMGroup
+                      label="Lieu de résidence souhaité *"
+                      name="ambitionLocation"
+                      options={["France", "Israël", "Ouvert aux deux"]}
+                      multi={false}
+                    />
+
                     <div>
-                      <label className={labelClass}>Quelles sont vos ambitions ? *</label>
-                      <div className="bg-wedding-navy/[0.02] p-6 rounded-3xl border border-wedding-navy/5 mb-4">
-                        <ul className="text-[10px] text-wedding-navy/50 font-medium space-y-1.5 list-disc pl-4 italic">
-                          <li>1) Est ce que tu veut être Avreh ou travailler ? Mi temps ? Avreh les premières années ? Soit précis</li>
-                          <li>2) Tu veut habiter en France ou en Israel ? Ouvert aux deux ?</li>
-                        </ul>
-                      </div>
+                      <label className={labelClass}>Précisions sur vos ambitions *</label>
                       <textarea
                         name="ambitions"
                         value={formData.ambitions || ''}
                         onChange={handleChange}
-                        rows={6}
+                        rows={4}
                         className={areaClass}
-                        placeholder="Décrivez vos projets professionnels et de vie..."
+                        placeholder="Détaillez vos projets ici..."
                       />
                     </div>
+
                     <div>
                       <label className={labelClass}>Kehila Fréquentée *</label>
-                      <div className="bg-wedding-navy/[0.02] p-4 rounded-3xl border border-wedding-navy/5 mb-4">
-                        <p className="text-[10px] text-wedding-navy/50 font-medium italic">Précise le nom de la communauté, la ville et le rav</p>
-                      </div>
                       <textarea
                         name="community"
                         value={formData.community || ''}
                         onChange={handleChange}
-                        rows={3}
+                        rows={2}
                         className={areaClass}
-                        placeholder="Ex: Kehila ..., Paris, Rav ..."
+                        placeholder="Ex: Kehila ..., Ville, Rav ..."
                       />
                     </div>
                   </div>
@@ -398,23 +484,48 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSave, onCancel, i
                     </div>
                   </div>
 
-                  <div className="space-y-8">
-                    <div>
-                      <label className={labelClass}>Caractère & Personnalité *</label>
-                      <div className="bg-wedding-navy/[0.02] p-6 rounded-3xl border border-wedding-navy/5 mb-4">
-                        <ul className="text-[10px] text-wedding-navy/50 font-medium space-y-1.5 list-disc pl-4 italic">
-                          <li>1) Caractère & personnalité : Sociable / réservé / drôle / calme / ambitieux / studieux / énergique, etc.</li>
-                          <li>2) Style vestimentaire en Ben Azmanim ? Chemise ? Kova 'Halifa ? en détente ?</li>
-                          <li>3) T'as quoi comme tel ? neuf touches, xiaomi, smartphone ? filtré ?</li>
-                        </ul>
+                  <div className="space-y-12">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                      <QCMGroup
+                        label="Est-ce que tu fumes ? *"
+                        name="isSmoking"
+                        options={["Non", "Oui"]}
+                        multi={false}
+                      />
+                      <div>
+                        <label className={labelClass}>Précisions (Si intermittent...)</label>
+                        <input type="text" name="smokingDetails" value={formData.smokingDetails || ''} onChange={handleChange} className={inputClass} placeholder="Ex: Très occasionnellement" />
                       </div>
+                    </div>
+
+                    <QCMGroup
+                      label="Caractère & Personnalité *"
+                      name="personalTraits"
+                      options={["Sociable", "Réservé", "Drôle", "Calme", "Ambitieux", "Studieux", "Énergique"]}
+                    />
+
+                    <QCMGroup
+                      label="Style vestimentaire (Ben Azmanim) *"
+                      name="personalClothing"
+                      options={["Chemise", "Kova 'Halifa", "Style Détente"]}
+                    />
+
+                    <QCMGroup
+                      label="Type de téléphone *"
+                      name="personalPhone"
+                      options={["Neuf touches", "Xiaomi", "Smartphone", "Smartphone filtré"]}
+                      multi={false}
+                    />
+
+                    <div>
+                      <label className={labelClass}>Quelques mots sur vous *</label>
                       <textarea
                         name="selfDescription"
                         value={formData.selfDescription || ''}
                         onChange={handleChange}
-                        rows={8}
+                        rows={5}
                         className={areaClass}
-                        placeholder="Parlez-nous de vous avec sincérité..."
+                        placeholder="Parlez-nous de vous librement..."
                       />
                     </div>
                   </div>
@@ -433,25 +544,46 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSave, onCancel, i
                     </div>
                   </div>
 
-                  <div className="space-y-8">
+                  <div className="space-y-12">
+                    <QCMGroup
+                      label="Milieu familial recherché *"
+                      name="searchFamily"
+                      options={["Fille de maison pratiquante", "Milieu Yéchiva", "Ba’alat téchouva"]}
+                    />
+
+                    <QCMGroup
+                      label="Style vestimentaire recherché *"
+                      name="searchClothing"
+                      options={["Classique", "Strict", "Moderne"]}
+                    />
+
+                    <QCMGroup
+                      label="Type de téléphone (Pour elle) *"
+                      name="searchPhone"
+                      options={["Smartphone", "Neuf touches", "À discuter"]}
+                    />
+
+                    <QCMGroup
+                      label="Caractère & Personnalité recherchés *"
+                      name="searchTraits"
+                      options={["Douce", "Joyeuse", "Sérieuse", "Simple", "Dynamique", "Organisée", "Calme", "Leader"]}
+                    />
+
+                    <QCMGroup
+                      label="Ce qui vous tient le plus à cœur *"
+                      name="searchPriorities"
+                      options={["Physique", "Tsniout", "Téléphone Cacher", "Caractère"]}
+                    />
+
                     <div>
-                      <label className={labelClass}>Profil idéal de la fille recherchée *</label>
-                      <div className="bg-wedding-navy/[0.02] p-6 rounded-3xl border border-wedding-navy/5 mb-4">
-                        <ul className="text-[10px] text-wedding-navy/50 font-medium space-y-1.5 list-disc pl-4 italic">
-                          <li>1) Sa famille : fille de maison pratiquante, de milieu yéchiva, ba’alat téchouva, etc.</li>
-                          <li>2) Style de vêtements : classique, strict, moderne, etc.</li>
-                          <li>3) A-t-elle un smartphone / neuf touches / à discuter ?</li>
-                          <li>4) Caractère et personnalité : douce, joyeuse, sérieuse, simple, dynamique, organisée, calme, leader…</li>
-                          <li>5) Qu'est ce qui te tiens le plus à cœur ? Le physique, la tsniout, le téléphone Cacher, le caractère, etc.</li>
-                        </ul>
-                      </div>
+                      <label className={labelClass}>Précisions sur votre recherche *</label>
                       <textarea
                         name="lookingFor"
                         value={formData.lookingFor || ''}
                         onChange={handleChange}
-                        rows={10}
+                        rows={6}
                         className={areaClass}
-                        placeholder="Soyez précis sur vos attentes..."
+                        placeholder="Décrivez plus précisément le profil idéal..."
                       />
                     </div>
                   </div>
@@ -521,14 +653,14 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSave, onCancel, i
         <div className="p-10 border-t border-wedding-navy/5 bg-white/50 backdrop-blur-md flex justify-between items-center shrink-0">
           <button
             onClick={currentStep === 1 ? onCancel : handleBack}
-            className="flex items-center gap-2 px-8 py-3.5 rounded-2xl font-bold text-wedding-navy/40 hover:text-wedding-navy hover:bg-wedding-navy/5 transition-all text-[10px] uppercase tracking-widest"
+            className="flex items-center gap-2 px-8 py-3.5 rounded-2xl font-bold text-wedding-navy/40 hover:text-wedding-navy hover:bg-wedding-navy/5 transition-all text-xs uppercase tracking-widest"
           >
             <ChevronLeft className="w-4 h-4" /> {currentStep === 1 ? 'Annuler' : 'Précédent'}
           </button>
 
           <button
             onClick={handleNext}
-            className="flex items-center gap-3 px-10 py-4 bg-wedding-navy text-white rounded-2xl font-bold shadow-[0_10px_30px_rgba(10,24,42,0.2)] hover:shadow-wedding-navy/30 transition-all transform hover:-translate-y-1 active:scale-95 text-[10px] uppercase tracking-widest border border-wedding-gold/20"
+            className="flex items-center gap-3 px-12 py-5 bg-wedding-navy text-white rounded-2xl font-bold shadow-[0_10px_30px_rgba(10,24,42,0.2)] hover:shadow-wedding-navy/30 transition-all transform hover:-translate-y-1 active:scale-95 text-xs uppercase tracking-widest border border-wedding-gold/20"
           >
             {currentStep === STEPS.length ? (
               <>

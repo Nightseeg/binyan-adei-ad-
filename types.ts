@@ -57,6 +57,26 @@ export interface Profile {
   community?: string;
   selfDescription?: string;
   rabbanimContacts?: string;
+  schoolCareer?: string;
+  yeshivaKtana?: string;
+  yeshivaGdola?: string;
+  currentOccupation?: string;
+  qualifications?: string;
+  isSmoking?: string;
+  smokingDetails?: string;
+  skinColor?: string;
+  eyeColor?: string;
+  hairColor?: string;
+  ambitionCareer?: string;
+  ambitionLocation?: string;
+  personalTraits?: string;
+  personalClothing?: string;
+  personalPhone?: string;
+  searchFamily?: string;
+  searchClothing?: string;
+  searchPhone?: string;
+  searchTraits?: string;
+  searchPriorities?: string;
 }
 
 export interface Reference {

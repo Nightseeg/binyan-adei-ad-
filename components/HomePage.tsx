@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowRight, LogIn } from 'lucide-react';
+import { ArrowRight, LogIn, Quote } from 'lucide-react';
 
 interface HomePageProps {
     onNavigate: (view: 'register' | 'dashboard' | 'candidate-login') => void;
@@ -7,9 +7,9 @@ interface HomePageProps {
 
 const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
     return (
-        <div className="fixed inset-0 top-20 overflow-hidden flex flex-col items-center justify-center bg-transparent font-sans text-wedding-navy selection:bg-wedding-rose/30">
+        <div className="w-full flex flex-col items-center bg-transparent font-sans text-wedding-navy selection:bg-wedding-rose/30 py-20">
 
-            <main className="w-full max-w-4xl mx-auto px-6 text-center animate-fade-in relative z-10">
+            <div className="w-full max-w-4xl mx-auto px-6 text-center animate-fade-in relative z-10 mb-32">
 
                 {/* Decorative Script Element */}
                 <div className="font-serif italic text-3xl md:text-4xl text-wedding-gold mb-4 opacity-90" style={{ fontFamily: 'Playfair Display, serif' }}>
@@ -17,9 +17,12 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
                 </div>
 
                 {/* Main Heading */}
-                <h1 className="text-7xl md:text-9xl font-serif font-bold tracking-tight mb-8 text-wedding-navy drop-shadow-sm leading-none">
+                <h1 className="text-7xl md:text-9xl font-serif font-bold tracking-tight mb-2 text-wedding-navy drop-shadow-sm leading-none">
                     Binyan Adei Ad
                 </h1>
+                <div className="text-sm md:text-lg font-sans font-bold text-wedding-gold/60 uppercase tracking-[0.3em] mb-8">
+                    by Torat Yaacov
+                </div>
 
                 {/* Subtitle with lines */}
                 <div className="flex items-center justify-center gap-4 mb-16">
@@ -53,8 +56,51 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
                 <div className="mt-16 text-sm text-wedding-text/60 font-medium tracking-wide">
                     CONFIDENTIALITÉ ABSOLUE • ACCOMPAGNEMENT PERSONNALISÉ
                 </div>
+            </div>
 
-            </main>
+            {/* Nos Rabbanim Section */}
+            <section className="w-full max-w-5xl mx-auto px-6 py-24 animate-fade-in border-t border-wedding-gold/10 relative z-10">
+                <div className="text-center mb-16">
+                    <h2 className="text-4xl font-serif font-bold text-wedding-navy tracking-tight mb-4">
+                        Nos Rabbanim
+                    </h2>
+                    <p className="text-wedding-gold font-serif italic text-xl">Le soutien spirituel de notre communauté</p>
+                    <div className="w-24 h-px bg-wedding-gold/30 mx-auto mt-6"></div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
+                    <div className="glass-card p-10 rounded-3xl border-wedding-gold/10 text-center group hover:-translate-y-2 transition-all duration-500 shadow-xl shadow-wedding-navy/5">
+                        <Quote className="w-8 h-8 text-wedding-gold/20 mx-auto mb-6 group-hover:text-wedding-gold transition-colors" />
+                        <h4 className="text-xl font-serif font-bold text-wedding-navy mb-2">Rav A. Dreyfuss</h4>
+                        <div className="text-[10px] font-bold text-wedding-gold uppercase tracking-[0.2em] mb-4">Conseiller Spirituel</div>
+                        <p className="text-sm text-wedding-navy/60 italic leading-relaxed">
+                            "Une initative précieuse pour la pérennité de nos foyers."
+                        </p>
+                    </div>
+
+                    <div className="glass-card p-10 rounded-3xl border-wedding-gold/10 text-center group hover:-translate-y-2 transition-all duration-500 shadow-xl shadow-wedding-navy/5">
+                        <Quote className="w-8 h-8 text-wedding-gold/20 mx-auto mb-6 group-hover:text-wedding-gold transition-colors" />
+                        <h4 className="text-xl font-serif font-bold text-wedding-navy mb-2">Rav Y. Rottenberg</h4>
+                        <div className="text-[10px] font-bold text-wedding-gold uppercase tracking-[0.2em] mb-4">Kahal Chassidim</div>
+                        <p className="text-sm text-wedding-navy/60 italic leading-relaxed">
+                            "Un service d'exception alliant modernité et traditions."
+                        </p>
+                    </div>
+
+                    <div className="glass-card p-10 rounded-3xl border-wedding-gold/10 text-center group hover:-translate-y-2 transition-all duration-500 shadow-xl shadow-wedding-navy/5">
+                        <Quote className="w-8 h-8 text-wedding-gold/20 mx-auto mb-6 group-hover:text-wedding-gold transition-colors" />
+                        <h4 className="text-xl font-serif font-bold text-wedding-navy mb-2">Rav M. Sitruk</h4>
+                        <div className="text-[10px] font-bold text-wedding-gold uppercase tracking-[0.2em] mb-4">Beth Hamidrash</div>
+                        <p className="text-sm text-wedding-navy/60 italic leading-relaxed">
+                            "Binyan Adei Ad est devenu une référence incontournable."
+                        </p>
+                    </div>
+                </div>
+
+                <div className="mt-20 text-center italic text-wedding-navy/40 text-xs tracking-widest uppercase font-bold">
+                    Sous la direction halakhique de nos maîtres
+                </div>
+            </section>
         </div>
     );
 };

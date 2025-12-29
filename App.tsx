@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { CheckCircle, Home, LogIn } from 'lucide-react';
+import { CheckCircle, Home, LogIn, Heart } from 'lucide-react';
 import RegistrationForm from './components/RegistrationForm';
 import ShadchanDashboard from './components/ShadchanDashboard';
 import LoginPage from './components/LoginPage';
@@ -71,7 +71,8 @@ const App: React.FC = () => {
     try {
       const createdProfile = await api.createProfile(newProfile);
       setProfiles([...profiles, createdProfile]);
-      setProfiles([...profiles, createdProfile]);
+      setCurrentUser(createdProfile);
+      setEditingProfile(createdProfile);
       setView('registration-success');
     } catch (error) {
       console.error("Error creating profile:", error);
@@ -132,31 +133,6 @@ const App: React.FC = () => {
         {/* Elegant White Overlay with Gradient for Depth */}
         <div className="fixed inset-0 z-[-1] bg-gradient-to-br from-white/95 via-white/85 to-wedding-rose/20 backdrop-blur-[1px]" />
 
-        {/* Floating Decorative Elements - Text-Free Atmosphere */}
-        <div className="fixed -top-10 -left-10 w-80 h-80 z-[-1] opacity-40 pointer-events-none animate-pulse duration-[4000ms]">
-          <img src="https://www.svgrepo.com/show/486246/flower-1.svg" className="w-full h-full rotate-12" alt="" />
-        </div>
-        <div className="fixed -bottom-20 -right-20 w-96 h-96 z-[-1] opacity-30 pointer-events-none">
-          <img src="https://www.svgrepo.com/show/486237/flower-bouquet.svg" className="w-full h-full -rotate-12" alt="" />
-        </div>
-
-        {/* Small Floating Ring Accents */}
-        <div className="fixed top-1/4 -right-10 w-40 h-40 z-[-1] opacity-10 pointer-events-none animate-float">
-          <img src="https://images.unsplash.com/photo-1515934751635-c81c6bc9a2d8?auto=format&fit=crop&w=300&q=80" className="w-full h-full rounded-full object-cover" alt="" />
-        </div>
-
-
-        {/* Floating Rings - Symmetric Top Right */}
-        <img
-          src="https://images.unsplash.com/photo-1596671049182-4e9008987151?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80"
-          alt="Wedding Bouquet"
-          onError={(e) => {
-            e.currentTarget.src = "https://images.unsplash.com/photo-1515934751635-c81c6bc9a2d8?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80"; // Fallback to Rings if broken
-            e.currentTarget.alt = "Wedding Rings Fallback";
-          }}
-          className="fixed top-24 right-10 w-32 h-32 object-cover rounded-full shadow-2xl z-[-1] opacity-60 border-4 border-white hidden md:block animate-fade-in"
-        />
-
         <div className="flex-grow flex flex-col text-wedding-navy">
           {view !== 'dashboard' && view !== 'candidate-portal' && view !== 'register' && view !== 'candidate-login' && (
             <Navbar currentView={view} onNavigate={setView} darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
@@ -186,7 +162,7 @@ const App: React.FC = () => {
                   exit={{ opacity: 0, x: -20 }}
                   transition={{ duration: 0.3 }}
                 >
-                  <div className="max-w-4xl mx-auto px-4 min-h-[calc(100vh-80px)] flex flex-col justify-center py-8">
+                  <div className="max-w-7xl mx-auto px-4 min-h-[calc(100vh-80px)] w-full flex flex-col justify-center py-8">
                     <RegistrationForm
                       onSave={handleSaveProfile}
                       onCancel={() => { setView('home'); setEditingProfile(undefined); }}
@@ -200,36 +176,45 @@ const App: React.FC = () => {
               {view === 'registration-success' && (
                 <motion.div
                   key="success"
-                  initial={{ opacity: 0, scale: 0.9 }}
+                  initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.9 }}
-                  transition={{ duration: 0.5 }}
-                  className="flex flex-col items-center justify-center min-h-[60vh] px-4"
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ duration: 0.6, ease: "easeOut" }}
+                  className="flex flex-col items-center justify-center min-h-[70vh] px-4"
                 >
-                  <div className="bg-white p-8 md:p-12 rounded-3xl shadow-xl border border-slate-100 flex flex-col items-center text-center max-w-lg mx-auto">
-                    <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-6 animate-bounce">
-                      <CheckCircle className="w-10 h-10" />
+                  <div className="glass-card p-12 md:p-16 rounded-[2.5rem] border-wedding-gold/20 shadow-2xl flex flex-col items-center text-center max-w-xl mx-auto relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-10 opacity-5">
+                      <Heart className="w-40 h-40 text-wedding-gold" />
                     </div>
-                    <h2 className="text-3xl font-serif font-bold text-slate-900 mb-4">Inscription Reçue !</h2>
-                    <p className="text-slate-500 mb-8 leading-relaxed">
-                      Mazel Tov ! Votre profil a bien été enregistré.
-                      <br />
-                      Notre équipe de Shadchanim va l'examiner avec la plus grande attention.
+
+                    <div className="w-24 h-24 bg-wedding-navy rounded-3xl flex items-center justify-center mb-8 shadow-2xl relative z-10 border border-wedding-gold/30">
+                      <CheckCircle className="w-12 h-12 text-wedding-gold animate-pulse" />
+                    </div>
+
+                    <h2 className="text-4xl font-serif font-bold text-wedding-navy mb-6 tracking-tight relative z-10">
+                      Inscription Reçue !
+                    </h2>
+
+                    <div className="w-20 h-0.5 bg-wedding-gold/30 mb-8 rounded-full"></div>
+
+                    <p className="text-wedding-navy/70 mb-12 leading-relaxed font-medium text-lg relative z-10 italic">
+                      Mazel Tov ! Votre profil a bien été enregistré avec succès.
                       <br /><br />
-                      Vous pouvez dès maintenant accéder à votre compte.
+                      Notre équipe de Shadchanim va l'examiner avec la plus grande attention pour vous proposer les meilleures opportunités.
                     </p>
-                    <div className="flex flex-col sm:flex-row gap-4 w-full">
+
+                    <div className="flex flex-col sm:flex-row gap-6 w-full relative z-10">
                       <button
-                        onClick={() => setView('candidate-login')}
-                        className="flex-1 bg-slate-900 text-white px-6 py-3 rounded-xl font-bold hover:bg-slate-800 transition-all flex items-center justify-center gap-2"
+                        onClick={() => setView('candidate-portal')}
+                        className="flex-1 bg-wedding-navy text-white px-8 py-4 rounded-2xl font-bold hover:bg-wedding-navy/90 transition-all flex items-center justify-center gap-3 shadow-xl shadow-wedding-navy/20 border border-wedding-gold/20 uppercase tracking-widest text-xs"
                       >
-                        <LogIn className="w-5 h-5" /> Se connecter
+                        <LogIn className="w-5 h-5 text-wedding-gold" /> Accéder à mon espace
                       </button>
                       <button
                         onClick={() => setView('home')}
-                        className="flex-1 bg-slate-100 text-slate-600 px-6 py-3 rounded-xl font-bold hover:bg-slate-200 transition-all flex items-center justify-center gap-2"
+                        className="flex-1 bg-white/50 text-wedding-navy px-8 py-4 rounded-2xl font-bold hover:bg-white/80 transition-all flex items-center justify-center gap-3 border border-wedding-navy/10 uppercase tracking-widest text-xs"
                       >
-                        <Home className="w-5 h-5" /> Accueil
+                        <Home className="w-5 h-5 text-wedding-gold" /> Retour à l'accueil
                       </button>
                     </div>
                   </div>
