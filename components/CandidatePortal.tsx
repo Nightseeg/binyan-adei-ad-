@@ -30,7 +30,7 @@ const CandidatePortal: React.FC<CandidatePortalProps> = ({ candidate, onLogout, 
                 console.error("Could not load shadchan profile", e);
                 // Fallback placeholder if even ID 1 fails
                 setShadchanProfile({
-                    name: "Support Lev Echad",
+                    name: "Support Binyan Adei Ad ",
                     role: "Administration",
                     image_url: null
                 });

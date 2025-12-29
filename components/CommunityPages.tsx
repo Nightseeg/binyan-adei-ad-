@@ -168,9 +168,9 @@ export const DonationPage: React.FC = () => (
         <div className="w-20 h-20 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-6">
             <Heart className="w-10 h-10 text-indigo-500" />
         </div>
-        <h1 className="text-4xl font-serif font-bold text-slate-900 mb-6">Soutenez Lev Echad</h1>
+        <h1 className="text-4xl font-serif font-bold text-slate-900 mb-6">Soutenez Binyan Adei Ad</h1>
         <p className="text-lg text-slate-600 mb-8">
-            Lev Echad est une initiative communautaire à but non lucratif. Vos dons nous permettent de maintenir la plateforme et d'organiser des événements.
+            Binyan Adei Ad est une initiative communautaire à but non lucratif. Vos dons nous permettent de maintenir la plateforme et d'organiser des événements.
         </p>
         <div className="grid grid-cols-3 gap-4 mb-8">
             {['18€', '52€', '101€'].map(amount => (

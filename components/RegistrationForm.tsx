@@ -198,7 +198,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSave, onCancel, i
           </div>
 
           <div className="hidden lg:block">
-            <h2 className="text-4xl font-serif font-bold mb-3 leading-tight">Lev Echad</h2>
+            <h2 className="text-4xl font-serif font-bold mb-3 leading-tight">Binyan Adei Ad</h2>
             <p className="text-white/40 text-[11px] font-bold uppercase tracking-[0.3em] mb-16 italic">Votre futur commence ici</p>
           </div>
 
@@ -283,7 +283,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSave, onCancel, i
                       <label className={labelClass}>Date de naissance *</label>
                       <div className="relative">
                         <Calendar className="w-4 h-4 text-wedding-gold absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" />
-                        <input type="date" name="birthDate" value={formData.birthDate || ''} onChange={handleChange} className={`${inputClass} pl-12`} />
+                        <input type="date" name="birthDate" value={formData.birthDate || ''} onChange={handleChange} className={`${inputClass} pl-12 md:pl-12`} />
                       </div>
                     </div>
                     <div>
@@ -297,14 +297,14 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSave, onCancel, i
                       <label className={labelClass}>Tél Personnel *</label>
                       <div className="relative">
                         <Phone className="w-4 h-4 text-wedding-gold absolute left-4 top-1/2 -translate-y-1/2" />
-                        <input type="text" name="contactPhone" value={formData.contactPhone || ''} onChange={handleChange} className={`${inputClass} pl-12`} placeholder="06 XX XX XX XX" />
+                        <input type="text" name="contactPhone" value={formData.contactPhone || ''} onChange={handleChange} className={`${inputClass} pl-12 md:pl-12`} placeholder="06 XX XX XX XX" />
                       </div>
                     </div>
                     <div className="md:col-span-2">
                       <label className={labelClass}>Ville de résidence *</label>
                       <div className="relative">
                         <MapPin className="w-4 h-4 text-wedding-gold absolute left-4 top-1/2 -translate-y-1/2" />
-                        <input type="text" name="city" value={formData.city || ''} onChange={handleChange} className={`${inputClass} pl-12`} placeholder="Ville actuelle" />
+                        <input type="text" name="city" value={formData.city || ''} onChange={handleChange} className={`${inputClass} pl-12 md:pl-12`} placeholder="Ville actuelle" />
                       </div>
                     </div>
 
@@ -712,14 +712,14 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSave, onCancel, i
                         <label className={labelClass}>Rav de la Yéchiva *</label>
                         <div className="relative">
                           <User className="w-4 h-4 text-wedding-gold absolute left-4 top-1/2 -translate-y-1/2" />
-                          <input type="text" name="ravYeshiva" value={formData.ravYeshiva || ''} onChange={handleChange} className={`${inputClass} pl-12`} placeholder="Nom et Téléphone" />
+                          <input type="text" name="ravYeshiva" value={formData.ravYeshiva || ''} onChange={handleChange} className={`${inputClass} pl-12 md:pl-12`} placeholder="Nom et Téléphone" />
                         </div>
                       </div>
                       <div>
                         <label className={labelClass}>Rav de la Kehila *</label>
                         <div className="relative">
                           <Users className="w-4 h-4 text-wedding-gold absolute left-4 top-1/2 -translate-y-1/2" />
-                          <input type="text" name="ravKehila" value={formData.ravKehila || ''} onChange={handleChange} className={`${inputClass} pl-12`} placeholder="Nom et Téléphone" />
+                          <input type="text" name="ravKehila" value={formData.ravKehila || ''} onChange={handleChange} className={`${inputClass} pl-12 md:pl-12`} placeholder="Nom et Téléphone" />
                         </div>
                       </div>
                     </div>
@@ -729,14 +729,14 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSave, onCancel, i
                         <label className={labelClass}>Email Personnel (Identifiant) *</label>
                         <div className="relative">
                           <Mail className="w-4 h-4 text-wedding-gold absolute left-4 top-1/2 -translate-y-1/2" />
-                          <input type="email" name="email" value={formData.email || ''} onChange={handleChange} className={`${inputClass} pl-12`} placeholder="votre@email.com" />
+                          <input type="email" name="email" value={formData.email || ''} onChange={handleChange} className={`${inputClass} pl-12 md:pl-12`} placeholder="votre@email.com" />
                         </div>
                       </div>
                       <div>
                         <label className={labelClass}>Code d'accès (Mot de passe) *</label>
                         <div className="relative">
                           <Key className="w-4 h-4 text-wedding-gold absolute left-4 top-1/2 -translate-y-1/2" />
-                          <input type="text" name="accessCode" value={formData.accessCode || ''} onChange={handleChange} className={`${inputClass} pl-12`} placeholder="Ex: 5678" />
+                          <input type="text" name="accessCode" value={formData.accessCode || ''} onChange={handleChange} className={`${inputClass} pl-12 md:pl-12`} placeholder="Ex: 5678" />
                         </div>
                         <p className="text-[9px] text-wedding-navy/30 mt-2 italic font-medium">Ce code vous servira à vous reconnecter.</p>
                       </div>
@@ -745,7 +745,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSave, onCancel, i
                     <div className="bg-wedding-navy/5 p-6 rounded-3xl border border-wedding-gold/20 flex gap-4">
                       <Info className="w-6 h-6 text-wedding-gold shrink-0" />
                       <p className="text-[10px] text-wedding-navy/60 leading-relaxed font-medium">
-                        En validant votre inscription, vous rejoignez la communauté Lev Echad. Vos informations sont traitées avec la plus grande discrétion par nos Shadchanim.
+                        En validant votre inscription, vous rejoignez la communauté Binyan Adei Ad. Vos informations sont traitées avec la plus grande discrétion par nos Shadchanim.
                       </p>
                     </div>
                   </div>
