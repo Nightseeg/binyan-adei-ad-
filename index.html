@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>❤️</text></svg>"
+    />
+    <title>Binyan Adei Ad - Shidduch Connect</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              'wedding-gold': '#C8A279',
+              'wedding-rose': '#E6D7D5',
+              'wedding-champagne': '#F5F5F0',
+              'wedding-navy': '#1A2942',
+              'wedding-text': '#4A4A4A',
+            },
+            fontFamily: {
+              serif: ['"Playfair Display"', 'serif'],
+              sans: ['"Lato"', 'sans-serif'],
+            }
+          }
+        }
+      };
+    </script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Lato:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        font-family: "Lato", sans-serif;
+        background-color: #f8f9fa;
+        overflow-x: hidden;
+      }
+      h1,
+      h2,
+      h3,
+      h4,
+      h5,
+      h6 {
+        font-family: "Playfair Display", serif;
+      }
+
+      @media print {
+        @page {
+          margin: 1cm;
+          size: A4;
+        }
+        body {
+          background: white;
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+          font-size: 12pt;
+        }
+        .no-print,
+        nav,
+        button,
+        .sidebar {
+          display: none !important;
+        }
+        /* Ensure profile view takes full width */
+        .profile-view {
+          display: block !important;
+          width: 100% !important;
+          border: none !important;
+          box-shadow: none !important;
+          padding: 0 !important;
+          overflow: visible !important;
+        }
+        /* Hide scrollbars */
+        * {
+          overflow: visible !important;
+        }
+
+        /* Better spacing for print */
+        .grid {
+          display: block !important;
+        }
+        .col-span-1,
+        .col-span-2 {
+          width: 100% !important;
+          display: block !important;
+          margin-bottom: 20px;
+        }
+
+        /* Page break inside avoidance */
+        .avoid-break {
+          break-inside: avoid;
+          page-break-inside: avoid;
+        }
+      }
+    </style>
+    <script type="importmap">
+      {
+        "imports": {
+          "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+          "uuid": "https://aistudiocdn.com/uuid@^13.0.0",
+          "react/": "https://aistudiocdn.com/react@^19.2.0/",
+          "react": "https://aistudiocdn.com/react@^19.2.0",
+          "@google/genai": "https://aistudiocdn.com/@google/genai@^1.30.0",
+          "lucide-react": "https://aistudiocdn.com/lucide-react@^0.555.0"
+        }
+      }
+    </script>
+    <link rel="stylesheet" href="/index.css" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>
