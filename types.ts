@@ -90,6 +90,7 @@ export interface Profile {
   searchPhoneDetails?: string;
   searchTraitsDetails?: string;
   searchPrioritiesDetails?: string;
+  lastActiveAt?: number;
 }
 
 export interface Reference {
@@ -145,6 +146,7 @@ export interface Match {
   status: MatchStatus;
   notes: string;
   lastUpdated: number;
+  createdById?: number;
 }
 
 export interface Task {

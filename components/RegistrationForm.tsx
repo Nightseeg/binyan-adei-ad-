@@ -3,6 +3,7 @@ import { Gender, ReligiousLevel, Profile } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 import { Save, ChevronRight, ChevronLeft, Check, User, Key, Mail, Phone, Calendar, MapPin, Users, Heart, GraduationCap, ClipboardList, Info, Star, Lock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { api } from '../services/dataService';
 
 interface RegistrationFormProps {
   onSave: (profile: Profile) => void;
@@ -115,6 +116,12 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSave, onCancel, i
     } as Profile;
 
     onSave(newProfile);
+
+    // Create a notification for the shadchan
+    api.createNotification({
+      type: 'PROFILE_NEW',
+      content: `Nouveau candidat inscrit : ${newProfile.firstName} ${newProfile.lastName} (${newProfile.city})`
+    }).catch(console.error);
   };
 
   const calculateAge = (birthDate: string) => {

@@ -37,7 +37,8 @@ create table if not exists profiles (
   location_radius integer,
   tags text[],
   created_at bigint default extract(epoch from now()) * 1000,
-  updated_at bigint default extract(epoch from now()) * 1000
+  updated_at bigint default extract(epoch from now()) * 1000,
+  last_active_at bigint
 );
 alter table profiles enable row level security;
 create policy "Public profiles access" on profiles for all using (true) with check (true);

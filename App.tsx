@@ -10,13 +10,13 @@ import HomePage from './components/HomePage';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import { ToastProvider } from './components/ToastSystem';
-import { ShadchansPage, DonationPage } from './components/CommunityPages';
+import { ShadchansPage } from './components/CommunityPages';
 import { Profile, Gender, ReligiousLevel } from './types';
 
 import { api } from './services/dataService';
 
 const App: React.FC = () => {
-  const [view, setView] = useState<'home' | 'register' | 'dashboard' | 'shadchans' | 'donate' | 'candidate-login' | 'candidate-portal' | 'registration-success'>(() => {
+  const [view, setView] = useState<'home' | 'register' | 'dashboard' | 'shadchans' | 'candidate-login' | 'candidate-portal' | 'registration-success'>(() => {
     const saved = localStorage.getItem('app_view');
     return (saved as any) || 'home';
   });
@@ -44,6 +44,13 @@ const App: React.FC = () => {
     if (currentUser) {
       // Store only ID to avoid QuotaExceededError/Base64 issues
       localStorage.setItem('currentUserId', currentUser.id);
+
+      // Heartbeat: Update last active status immediately and then every 5 minutes
+      const updatePresence = () => api.updateLastActive(currentUser.id);
+      updatePresence();
+
+      const intervalId = setInterval(updatePresence, 5 * 60 * 1000); // 5 minutes
+      return () => clearInterval(intervalId);
     } else {
       localStorage.removeItem('currentUserId');
     }
@@ -174,6 +181,16 @@ const App: React.FC = () => {
       console.error("Error deleting profiles:", error);
       alert("Erreur lors de la suppression.");
     }
+  };
+
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    setCurrentUser(undefined);
+    localStorage.removeItem('isAuthenticated');
+    localStorage.removeItem('currentUserId');
+    localStorage.removeItem('shadchan_key');
+    localStorage.removeItem('access_code');
+    setView('home');
   };
 
   const handlePinSubmit = () => {
@@ -316,7 +333,7 @@ const App: React.FC = () => {
                 >
                   <CandidatePortal
                     candidate={currentUser}
-                    onLogout={() => { setCurrentUser(undefined); setView('home'); }}
+                    onLogout={handleLogout}
                     onUpdateProfile={handleUpdateProfile}
                   />
                 </motion.div>
@@ -351,7 +368,7 @@ const App: React.FC = () => {
                         profiles={profiles}
                         onUpdateProfile={handleUpdateProfile}
                         onDeleteProfiles={handleDeleteProfiles}
-                        onLogout={() => { setIsAuthenticated(false); setView('home'); }}
+                        onLogout={handleLogout}
                       />
                     </div>
                   </motion.div>
@@ -364,6 +381,8 @@ const App: React.FC = () => {
                   <ShadchansPage />
                 </motion.div>
               )}
+
+
 
             </AnimatePresence>
 

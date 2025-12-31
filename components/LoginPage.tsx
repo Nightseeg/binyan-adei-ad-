@@ -17,6 +17,10 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onCancel }) => {
         try {
             const { error } = await supabase.auth.signInWithPassword({ email, password });
             if (error) throw error;
+
+            // Set the security key for RLS policies
+            localStorage.setItem('shadchan_key', 'lev-echad-admin-2025');
+
             onLoginSuccess();
         } catch (error: any) {
             alert("Erreur de connexion: " + error.message);

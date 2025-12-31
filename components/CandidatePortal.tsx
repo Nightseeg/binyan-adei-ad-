@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Profile } from '../types';
 import { api } from '../services/dataService';
+import { supabase } from '../services/supabaseClient';
 import RegistrationForm from './RegistrationForm';
 import { MessageCircle, User, LogOut, Send, Loader2, X, Phone, Mail, MapPin, Clock } from 'lucide-react';
 
@@ -43,9 +44,27 @@ const CandidatePortal: React.FC<CandidatePortalProps> = ({ candidate, onLogout, 
     useEffect(() => {
         if (activeTab === 'messages') {
             loadMessages();
-            // Poll for new messages every 10s
-            const interval = setInterval(loadMessages, 10000);
-            return () => clearInterval(interval);
+
+            // Subscribe to real-time changes
+            const channel = supabase
+                .channel(`candidate-messages-${candidate.id}`)
+                .on(
+                    'postgres_changes',
+                    {
+                        event: 'INSERT',
+                        schema: 'public',
+                        table: 'messages',
+                        filter: `profile_id=eq.${candidate.id}`
+                    },
+                    () => {
+                        loadMessages();
+                    }
+                )
+                .subscribe();
+
+            return () => {
+                supabase.removeChannel(channel);
+            };
         }
     }, [activeTab, candidate.id]);
 

@@ -1,13 +1,53 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ArrowRight, LogIn, Quote } from 'lucide-react';
 
 interface HomePageProps {
     onNavigate: (view: 'register' | 'dashboard' | 'candidate-login') => void;
 }
 
+const FadeInImage = ({ src, alt, className }: { src: string; alt: string; className?: string }) => {
+    const [isLoaded, setIsLoaded] = useState(false);
+    return (
+        <img
+            src={src}
+            alt={alt}
+            onLoad={() => setIsLoaded(true)}
+            decoding="async"
+            className={`${className} transition-opacity duration-700 ease-in-out ${isLoaded ? 'opacity-90' : 'opacity-0'}`}
+        />
+    );
+};
+
 const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
     return (
-        <div className="w-full flex flex-col items-center bg-transparent font-sans text-wedding-navy selection:bg-wedding-rose/30 py-20">
+        <div className="w-full flex flex-col items-center bg-transparent font-sans text-wedding-navy selection:bg-wedding-rose/30 py-20 relative overflow-hidden">
+            {/* Corner Decorations */}
+            <div className="absolute top-0 left-0 w-48 h-48 md:w-80 md:h-80 pointer-events-none mix-blend-multiply">
+                <FadeInImage
+                    src="/assets/images/flower-corner-top-left.png"
+                    alt="Decorative Flowers"
+                    className="w-full h-full object-contain"
+                />
+            </div>
+
+            {/* Top Right - using same image rotated if needed, or just let the top left separate */}
+            {/* Plan called for bottom right specific. For top right I didn't generate one specific, 
+                but I can rotate the top-left one or leave it asymmetric. 
+                Original design had corners on top left and top right.
+                Let's use Top-Left rotated for Top-Right? 
+                Actually, usually corner flowers are asymmetric. 
+                I generated top-left and bottom-right.
+                I will put top-left on top-left.
+                I will put bottom-right on bottom-right.
+                What about top-right? I can flip the top-left one horizontally.
+            */}
+            <div className="absolute top-0 right-0 w-48 h-48 md:w-80 md:h-80 pointer-events-none mix-blend-multiply">
+                <FadeInImage
+                    src="/assets/images/flower-corner-top-left.png"
+                    alt="Decorative Flowers"
+                    className="w-full h-full object-contain -scale-x-100"
+                />
+            </div>
 
             <div className="w-full max-w-4xl mx-auto px-6 text-center animate-fade-in relative z-10 mb-32">
 
@@ -102,6 +142,22 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
                 </div>
 
             </section>
+
+            {/* Bottom Corner Decorations */}
+            <div className="absolute bottom-0 left-0 w-48 h-48 md:w-80 md:h-80 pointer-events-none mix-blend-multiply">
+                <FadeInImage
+                    src="/assets/images/flower-corner-bottom-right.png"
+                    alt="Decorative Flowers"
+                    className="w-full h-full object-contain -scale-x-100"
+                />
+            </div>
+            <div className="absolute bottom-0 right-0 w-48 h-48 md:w-80 md:h-80 pointer-events-none mix-blend-multiply">
+                <FadeInImage
+                    src="/assets/images/flower-corner-bottom-right.png"
+                    alt="Decorative Flowers"
+                    className="w-full h-full object-contain"
+                />
+            </div>
         </div>
     );
 };

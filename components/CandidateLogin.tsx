@@ -21,13 +21,18 @@ const CandidateLogin: React.FC<CandidateLoginProps> = ({ onLoginSuccess, onCance
         setError('');
 
         try {
+            // Set temporary access code to allow RLS during login check
+            localStorage.setItem('access_code', accessCode);
             const profile = await api.candidateLogin(email.toLowerCase().trim(), accessCode);
             if (profile) {
+                // Keep it on success
                 onLoginSuccess(profile);
             } else {
+                localStorage.removeItem('access_code');
                 setError("Profil non trouvé ou code incorrect.");
             }
         } catch (err) {
+            localStorage.removeItem('access_code');
             console.error(err);
             setError("Email ou code incorrect.");
         } finally {

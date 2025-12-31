@@ -70,6 +70,7 @@ const mapProfileFromDB = (p: any): Profile => ({
     searchPhoneDetails: p.search_phone_details,
     searchTraitsDetails: p.search_traits_details,
     searchPrioritiesDetails: p.search_priorities_details,
+    lastActiveAt: p.last_active_at,
 });
 
 const mapProfileToDB = (p: Partial<Profile>) => {
@@ -137,6 +138,7 @@ const mapProfileToDB = (p: Partial<Profile>) => {
     if (p.searchPhoneDetails) dbProfile.search_phone_details = p.searchPhoneDetails;
     if (p.searchTraitsDetails) dbProfile.search_traits_details = p.searchTraitsDetails;
     if (p.searchPrioritiesDetails) dbProfile.search_priorities_details = p.searchPrioritiesDetails;
+    if (p.lastActiveAt) dbProfile.last_active_at = p.lastActiveAt;
     
     // Remove camelCase keys to be clean (optional but good)
     delete dbProfile.firstName;
@@ -199,10 +201,37 @@ const mapProfileToDB = (p: Partial<Profile>) => {
     delete dbProfile.searchFamilyDetails;
     delete dbProfile.searchClothingDetails;
     delete dbProfile.searchPhoneDetails;
+    delete dbProfile.searchPhoneDetails;
     delete dbProfile.searchTraitsDetails;
     delete dbProfile.searchPrioritiesDetails;
-    
+    delete dbProfile.lastActiveAt;
+
     return dbProfile;
+};
+
+const sanitizeText = (text: string) => {
+    if (!text || typeof text !== 'string') return text;
+    return text
+        .replace(/<script\b[^>]*>([\s\S]*?)<\/script>/gim, "")
+        .replace(/on\w+="[^"]*"/gim, "")
+        .replace(/javascript:[^"]*/gim, "");
+};
+
+const sanitizeProfile = (profile: Profile): Profile => {
+    const p = { ...profile };
+    const textFields: (keyof Profile)[] = [
+        'firstName', 'lastName', 'aboutMe', 'lookingFor', 'privateNotes',
+        'educationalPath', 'familyDescription', 'ambitions', 'community',
+        'selfDescription', 'rabbanimContacts', 'schoolCareer', 'qualifications'
+    ];
+    
+    textFields.forEach(field => {
+        if (p[field] && typeof p[field] === 'string') {
+            (p as any)[field] = sanitizeText(p[field] as string);
+        }
+    });
+
+    return p;
 };
 
 export const api = {
@@ -213,13 +242,15 @@ export const api = {
         return data.map(mapProfileFromDB);
     },
     createProfile: async (profile: Profile) => {
-        const dbProfile = mapProfileToDB(profile);
+        const sanitized = sanitizeProfile(profile);
+        const dbProfile = mapProfileToDB(sanitized);
         const { data, error } = await supabase.from('profiles').insert(dbProfile).select().single();
         if (error) throw error;
         return mapProfileFromDB(data);
     },
     updateProfile: async (profile: Profile) => {
-        const dbProfile = mapProfileToDB(profile);
+        const sanitized = sanitizeProfile(profile);
+        const dbProfile = mapProfileToDB(sanitized);
         const { data, error } = await supabase.from('profiles').update(dbProfile).eq('id', profile.id).select().single();
         if (error) throw error;
         return mapProfileFromDB(data);
@@ -232,6 +263,13 @@ export const api = {
     deleteProfile: async (id: string) => {
         const { error } = await supabase.from('profiles').delete().eq('id', id);
         if (error) throw error;
+    },
+    updateLastActive: async (profileId: string) => {
+        const { error } = await supabase
+            .from('profiles')
+            .update({ last_active_at: Date.now() })
+            .eq('id', profileId);
+        if (error) console.error("Error updating presence:", error);
     },
     candidateLogin: async (email: string, code: string) => {
         const { data, error } = await supabase
@@ -254,7 +292,8 @@ export const api = {
              ...m,
              boyId: m.boy_id,
              girlId: m.girl_id,
-             lastUpdated: m.last_updated
+             lastUpdated: m.last_updated,
+             createdById: m.created_by_id
          }));
     },
     saveMatch: async (match: Match) => {
@@ -265,7 +304,8 @@ export const api = {
             girl_id: match.girlId,
             status: match.status,
             notes: match.notes,
-            last_updated: match.lastUpdated
+            last_updated: match.lastUpdated,
+            created_by_id: match.createdById
         };
         const { error } = await supabase.from('matches').upsert(dbMatch);
         if (error) throw error;
@@ -278,6 +318,7 @@ export const api = {
         return data.map((t: any) => ({ ...t, createdAt: t.created_at }));
     },
     createTask: async (task: Task) => {
+        console.log("api.createTask: Sending task to DB", task);
         const dbTask = {
             id: task.id,
             text: task.text,
@@ -285,7 +326,11 @@ export const api = {
             created_at: task.createdAt
         };
         const { error } = await supabase.from('tasks').insert(dbTask);
-        if (error) throw error;
+        if (error) {
+            console.error("api.createTask: Supabase error", error);
+            throw error;
+        }
+        console.log("api.createTask: Insert successful");
     },
     updateTask: async (task: Task) => {
         const dbTask = {
@@ -331,7 +376,9 @@ export const api = {
             id: log.id,
             type: log.type,
             description: log.description,
-            timestamp: log.timestamp
+            timestamp: log.timestamp,
+            created_by: log.shadchanId,
+            metadata: log.metadata
         };
         await supabase.from('activity_logs').insert(dbLog);
     },
@@ -452,5 +499,49 @@ export const api = {
             return []; // Return empty array on error (e.g. table missing) to prevent crash
         }
         return data;
+    },
+
+    // Notifications
+    getNotifications: async () => {
+        const { data, error } = await supabase
+            .from('notifications')
+            .select('*')
+            .order('created_at', { ascending: false })
+            .limit(50);
+        if (error) throw error;
+        return data.map((n: any) => ({
+            id: n.id,
+            profileId: n.profile_id,
+            type: n.type,
+            content: n.content,
+            read: n.read,
+            createdAt: n.created_at
+        }));
+    },
+    markNotificationRead: async (id: string) => {
+        const { error } = await supabase
+            .from('notifications')
+            .update({ read: true })
+            .eq('id', id);
+        if (error) throw error;
+    },
+    markAllNotificationsRead: async () => {
+        const { error } = await supabase
+            .from('notifications')
+            .update({ read: true })
+            .eq('read', false);
+        if (error) throw error;
+    },
+    createNotification: async (notif: { profileId?: string, type: string, content: string }) => {
+        const { error } = await supabase
+            .from('notifications')
+            .insert({
+                profile_id: notif.profileId,
+                type: notif.type,
+                content: notif.content
+            });
+        if (error) {
+            console.error("Failed to create notification:", error);
+        }
     }
 };
