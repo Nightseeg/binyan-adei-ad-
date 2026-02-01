@@ -3,7 +3,7 @@ import { supabase } from '../services/supabaseClient';
 import { ArrowLeft } from 'lucide-react';
 
 interface LoginPageProps {
-    onLoginSuccess: () => void;
+    onLoginSuccess: (shadchanProfile?: any) => void;
     onCancel: () => void;
 }
 
@@ -19,9 +19,33 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onCancel }) => {
             if (error) throw error;
 
             // Set the security key for RLS policies
-            localStorage.setItem('shadchan_key', 'lev-echad-admin-2025');
+            try {
+                localStorage.setItem('shadchan_key', import.meta.env.VITE_ADMIN_KEY);
+            } catch (e: any) {
+                if (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
+                    const confirmClear = window.confirm("Votre stockage local est plein. Voulez-vous le vider pour pouvoir vous connecter ? (Cela vous déconnectera de vos autres sessions sur ce site)");
+                    if (confirmClear) {
+                        localStorage.clear();
+                        localStorage.setItem('shadchan_key', import.meta.env.VITE_ADMIN_KEY);
+                    } else {
+                        throw new Error("Espace de stockage insuffisant dans le navigateur.");
+                    }
+                } else {
+                    throw e;
+                }
+            }
 
-            onLoginSuccess();
+            // Fetch Shadchan Profile
+            try {
+                const { api } = await import('../services/dataService');
+                const shadchanProfile = await api.getShadchanByEmail(email);
+                onLoginSuccess(shadchanProfile);
+            } catch (err) {
+                console.error("Error fetching shadchan profile:", err);
+                // Fallback for existing admin or fail?
+                // For now, proceed. If shadchanProfile is missing, Dashboard handles it as "Admin" or default.
+                onLoginSuccess(null);
+            }
         } catch (error: any) {
             alert("Erreur de connexion: " + error.message);
         } finally {
@@ -76,7 +100,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onCancel }) => {
 
             <button
                 onClick={onCancel}
-                className="fixed bottom-6 left-6 md:bottom-8 md:left-24 text-xs md:text-sm text-wedding-navy hover:text-white hover:bg-wedding-navy font-bold flex items-center gap-2 transition-all bg-white/80 px-4 py-2 md:px-5 md:py-2.5 rounded-full backdrop-blur-md shadow-lg border border-white/50 z-50 group"
+                className="fixed top-6 left-6 md:top-8 md:left-24 text-xs md:text-sm text-wedding-navy hover:text-white hover:bg-wedding-navy font-bold flex items-center gap-2 transition-all bg-white/80 px-4 py-2 md:px-5 md:py-2.5 rounded-full backdrop-blur-md shadow-lg border border-white/50 z-50 group"
             >
                 <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" /> <span className="hidden xs:inline">Retour à l'accueil</span><span className="xs:hidden">Retour</span>
             </button>

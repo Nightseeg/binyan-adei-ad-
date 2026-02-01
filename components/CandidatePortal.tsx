@@ -22,19 +22,16 @@ const CandidatePortal: React.FC<CandidatePortalProps> = ({ candidate, onLogout, 
 
     useEffect(() => {
         const loadShadchan = async () => {
-            // Try to load assigned shadchan, otherwise load default/admin (ID 1)
-            const idToLoad = candidate.assignedShadchanId || 1;
-            try {
-                const sp = await api.getShadchanProfile(idToLoad);
-                setShadchanProfile(sp);
-            } catch (e) {
-                console.error("Could not load shadchan profile", e);
-                // Fallback placeholder if even ID 1 fails
-                setShadchanProfile({
-                    name: "Support Binyan Adei Ad ",
-                    role: "Administration",
-                    image_url: null
-                });
+            // Only load shadchan if one is actually assigned
+            if (candidate.assignedShadchanId) {
+                try {
+                    const sp = await api.getShadchanProfile(candidate.assignedShadchanId);
+                    setShadchanProfile(sp);
+                } catch (e) {
+                    console.error("Could not load shadchan profile", e);
+                }
+            } else {
+                setShadchanProfile(null);
             }
             setInitialLoadComplete(true);
         };

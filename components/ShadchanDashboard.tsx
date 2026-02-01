@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Profile, Gender, MatchSuggestion, ReligiousLevel, Match, MatchStatus, Task, MatchingCriteria } from '../types';
-import { findMatchesForProfile } from '../services/matchingEngine';
-import { Users, User, Sparkles, Loader2, Phone, Search, MapPin, Briefcase, Ruler, Heart, X, ArrowUpDown, Kanban, LayoutGrid, Star, Save, Plus, Tag, CheckSquare, FileText, Check, Trash2, Copy, Printer, Activity, Bell, Clock, Square, CheckCircle2, ChevronLeft, ChevronRight, Eye, EyeOff, Upload, Zap, Mail, MessageCircle, Send, Settings, Menu, LogOut, Calendar, GraduationCap } from 'lucide-react';
+import { Profile, Gender, ReligiousLevel, Match, MatchStatus, Task } from '../types';
+
+import { Users, User, Sparkles, Loader2, Phone, Search, MapPin, Briefcase, Ruler, Heart, X, ArrowUpDown, Kanban, LayoutGrid, Star, Save, Plus, Tag, CheckSquare, FileText, Check, Trash2, Copy, Activity, Bell, Clock, Square, CheckCircle2, ChevronLeft, ChevronRight, Eye, EyeOff, Upload, Zap, Mail, MessageCircle, Send, Settings, Menu, LogOut, Calendar, GraduationCap } from 'lucide-react';
 import MatchPipeline from './MatchPipeline';
 import { v4 as uuidv4 } from 'uuid';
 import { api } from '../services/dataService';
@@ -15,6 +15,8 @@ interface ShadchanDashboardProps {
   onUpdateProfile: (p: Profile) => void;
   onDeleteProfiles: (ids: string[]) => void;
   onLogout: () => void;
+  shadchanProfile?: any;
+  onUpdateShadchan?: (profile: any) => void;
 }
 
 interface ActivityLog {
@@ -29,19 +31,22 @@ interface ActivityLog {
 type SortOption = 'newest' | 'oldest' | 'age_asc' | 'age_desc' | 'name_asc' | 'name_desc';
 type DashboardView = 'overview' | 'profiles' | 'pipeline' | 'tasks' | 'settings' | 'messages';
 
-const ShadchanDashboard: React.FC<ShadchanDashboardProps> = ({ profiles, onUpdateProfile, onDeleteProfiles, onLogout }) => {
+const ShadchanDashboard: React.FC<ShadchanDashboardProps> = ({ profiles: allProfiles, onUpdateProfile, onDeleteProfiles, onLogout, shadchanProfile: initialShadchan, onUpdateShadchan }) => {
+  // Filter profiles based on Shadchan assignment
+  const profiles = initialShadchan
+    ? allProfiles.filter(p => !p.assignedShadchanId || p.assignedShadchanId === initialShadchan.id)
+    : allProfiles;
   const [currentView, setCurrentView] = useState<DashboardView>('overview');
   const [selectedGender, setSelectedGender] = useState<Gender>(Gender.MALE);
   const [selectedProfile, setSelectedProfile] = useState<Profile | null>(null);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [suggestions, setSuggestions] = useState<MatchSuggestion[] | null>(null);
+
+  const [isLoading, setIsLoading] = useState(true);
   const taskInputRef = useRef<HTMLInputElement>(null);
 
   const [searchQuery, setSearchQuery] = useState('');
   const { success, error: showError } = useToast();
   const [showConfetti, setShowConfetti] = useState(false);
-  const [matchCriteria, setMatchCriteria] = useState<MatchingCriteria>({});
-  const [showAdvancedMatch, setShowAdvancedMatch] = useState(false);
+
   const [privacyMode, setPrivacyMode] = useState(false);
   const [selectedTag, setSelectedTag] = useState('');
 
@@ -51,14 +56,40 @@ const ShadchanDashboard: React.FC<ShadchanDashboardProps> = ({ profiles, onUpdat
   const [newMessageText, setNewMessageText] = useState('');
   const [unreadCount, setUnreadCount] = useState(0);
   const [chatSearchQuery, setChatSearchQuery] = useState('');
+  const [sendingMessage, setSendingMessage] = useState(false);
+  const [showNotificationCenter, setShowNotificationCenter] = useState(false);
   const [idsWithMessages, setIdsWithMessages] = useState<string[]>([]);
   const [dynamicInsights, setDynamicInsights] = useState<any[]>([]);
-  const [isCvMode, setIsCvMode] = useState(false);
+
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+
+  /* New state for detailed unread counts */
+  const [unreadCountsByUser, setUnreadCountsByUser] = useState<Record<string, number>>({});
 
   const fetchUnreadCount = async () => {
     try {
+      // Get global count
       const count = await api.getUnreadMessagesCount();
       setUnreadCount(count);
+
+      // Get count per user (we need a new API method or just do a grouping query here if possible, 
+      // but sticking to existing patterns, we might need to fetch all unread messages and group them locally
+      // or add a specific RPC/query. For now, let's fetch all unread 'FROM_CANDIDATE' messages and group them.)
+
+      const { data: unreadMsgs } = await supabase
+        .from('messages')
+        .select('profile_id')
+        .eq('direction', 'FROM_CANDIDATE')
+        .eq('is_read', false);
+
+      if (unreadMsgs) {
+        const counts: Record<string, number> = {};
+        unreadMsgs.forEach((msg: any) => {
+          counts[msg.profile_id] = (counts[msg.profile_id] || 0) + 1;
+        });
+        setUnreadCountsByUser(counts);
+      }
+
     } catch (err) {
       console.error(err);
     }
@@ -81,15 +112,42 @@ const ShadchanDashboard: React.FC<ShadchanDashboardProps> = ({ profiles, onUpdat
           } else {
             // Create a notification if we are not actively chatting with this person
             const sender = profiles.find(p => p.id === payload.new.profile_id);
-            api.createNotification({
-              profileId: payload.new.profile_id,
-              type: 'MESSAGE_NEW',
-              content: `Nouveau message de ${sender?.firstName || 'Candidat'}: "${payload.new.content.substring(0, 50)}..."`
-            }).catch(console.error);
+            if (sender) {
+              api.createNotification({
+                profileId: payload.new.profile_id,
+                type: 'MESSAGE_NEW',
+                content: `Nouveau message de ${sender.firstName}: "${payload.new.content.substring(0, 50)}..."`
+              }).catch(console.error);
+            }
           }
           // Also update the list of IDs with messages if it's a new one
           if (!idsWithMessages.includes(payload.new.profile_id)) {
             setIdsWithMessages(prev => [...prev, payload.new.profile_id]);
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'profiles' },
+        async (payload) => {
+          // Update local profiles list when a profile changes (e.g. assignment)
+          if (payload.new) {
+            // Fetch the full profile to ensure consistent structure or use payload if sufficient
+            // Since payload might be partial or raw DB format, mapping is safer.
+            // For now, let's just update the fields we know are critical like assigned_shadchan_id
+            const updatedFields = payload.new;
+
+            // We need to update 'allProfiles' effectively (via onUpdateProfile prop or internal state if we had it exposed... 
+            // actually 'profiles' prop is passed from App.tsx/DataService. we can call onUpdateProfile to bubble it up)
+
+            // Construct a partial profile object safely
+            const partialUpdate: any = {
+              id: updatedFields.id,
+              assignedShadchanId: updatedFields.assigned_shadchan_id,
+              //... other fields might be needed if they changed 
+            };
+
+            onUpdateProfile(partialUpdate);
           }
         }
       )
@@ -121,24 +179,46 @@ const ShadchanDashboard: React.FC<ShadchanDashboardProps> = ({ profiles, onUpdat
     try {
       const msgs = await api.getMessages(pid);
       setMessages(msgs || []);
+
+      // Mark as read if we are opening it
+      if (msgs && msgs.some((m: any) => !m.isRead && m.direction === 'FROM_CANDIDATE')) {
+        api.markMessagesAsRead(pid).then(() => {
+          // Update local count state to remove badge immediately
+          fetchUnreadCount();
+        }).catch(console.error);
+      }
     } catch (err) {
       console.error(err);
     }
   };
 
   const handleSendMessage = async () => {
-    if (!chatProfile || !newMessageText.trim()) return;
+    if (!newMessageText.trim() || !chatProfile) return; // Using newMessageText and chatProfile as per original code
+    setSendingMessage(true);
     try {
       await api.sendMessage({
         profileId: chatProfile.id,
         direction: 'FROM_SHADCHAN',
         content: newMessageText
       });
-      setNewMessageText('');
-      loadMessages(chatProfile.id);
+
+      // Auto-assign shadchan if candidate is unassigned
+      if (shadchanProfile?.id) {
+        const candidate = profiles.find(p => p.id === chatProfile.id); // Use chatProfile.id
+        if (candidate && !candidate.assignedShadchanId) {
+          await api.updateProfile({ ...candidate, assignedShadchanId: shadchanProfile.id });
+          // Update local state to reflect assignment
+          onUpdateProfile({ ...candidate, assignedShadchanId: shadchanProfile.id });
+        }
+      }
+
+      setNewMessageText(''); // Using setNewMessageText
+      loadMessages(chatProfile.id); // Using chatProfile.id
     } catch (err) {
       console.error(err);
-      showError("Échec de l'envoi");
+      showError("Erreur lors de l'envoi"); // Changed error message to match new snippet
+    } finally {
+      setSendingMessage(false);
     }
   };
 
@@ -212,8 +292,82 @@ const ShadchanDashboard: React.FC<ShadchanDashboardProps> = ({ profiles, onUpdat
 
   // Notifications State
   const [notifications, setNotifications] = useState<any[]>([]);
-  const [showNotificationCenter, setShowNotificationCenter] = useState(false);
   const unreadNotificationsCount = notifications.filter(n => !n.read).length;
+
+  // Real-time Refs
+  const chatProfileRef = useRef<Profile | null>(null);
+
+  // Sync Ref
+  useEffect(() => {
+    chatProfileRef.current = chatProfile;
+  }, [chatProfile]);
+
+  // Real-time Subscriptions
+  useEffect(() => {
+    const channel = supabase.channel('dashboard_realtime')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'messages' },
+        (payload) => {
+          const newMsg = payload.new;
+
+          // 1. Update Messages if chat is open
+          if (chatProfileRef.current && newMsg.profile_id === chatProfileRef.current.id) {
+            setMessages(prev => {
+              if (prev.some(m => m.id === newMsg.id)) return prev;
+              return [...prev, {
+                id: newMsg.id,
+                profileId: newMsg.profile_id,
+                direction: newMsg.direction,
+                content: newMsg.content,
+                createdAt: newMsg.created_at,
+                isRead: newMsg.is_read
+              }];
+            });
+
+            // Mark read locally if we are the recipient and viewing it
+            if (newMsg.direction === 'FROM_CANDIDATE') {
+              // Could trigger API mark read here, but keeping it simple for now
+            }
+          }
+
+          // 2. Update Unread Count & Sidebar indicators
+          if (newMsg.direction === 'FROM_CANDIDATE') {
+            // Only increment if not currently viewing the chat (or assume backend handles 'read' status later)
+            if (!chatProfileRef.current || chatProfileRef.current.id !== newMsg.profile_id) {
+              setUnreadCount(prev => prev + 1);
+              success(`Nouveau message de ${profiles.find(p => p.id === newMsg.profile_id)?.firstName || 'Candidat'}`);
+            }
+
+            setIdsWithMessages(prev => {
+              if (prev.includes(newMsg.profile_id)) return prev;
+              return [...prev, newMsg.profile_id];
+            });
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'notifications' },
+        (payload) => {
+          const newNotif = payload.new;
+          const mapped = {
+            id: newNotif.id,
+            profileId: newNotif.profile_id,
+            type: newNotif.type,
+            content: newNotif.content,
+            read: newNotif.read,
+            createdAt: newNotif.created_at
+          };
+          setNotifications(prev => [mapped, ...prev]);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [profiles]); // Re-subscribe if profiles list changes (rare but ensures name lookup works)
 
   const sanitize = (text: string) => {
     if (!text) return '';
@@ -238,6 +392,15 @@ const ShadchanDashboard: React.FC<ShadchanDashboardProps> = ({ profiles, onUpdat
     api.logActivity(newActivity).catch(console.error);
   };
 
+  // Helper to format activity description
+  const formatActivityDescription = (description: string) => {
+    const uuidRegex = /[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/g;
+    return description.replace(uuidRegex, (match) => {
+      const profile = profiles.find(p => p.id === match);
+      return profile ? `${profile.firstName} ${profile.lastName}` : match.substring(0, 8) + '...';
+    });
+  };
+
   // Task Manager State
   const [tasks, setTasks] = useState<Task[]>([]);
   const [newTaskText, setNewTaskText] = useState('');
@@ -246,7 +409,8 @@ const ShadchanDashboard: React.FC<ShadchanDashboardProps> = ({ profiles, onUpdat
   const [modalAction, setModalAction] = useState<'task' | 'profile_note'>('task');
 
   const [isUploading, setIsUploading] = useState(false);
-  const [shadchanProfile, setShadchanProfile] = useState<any>({});
+  // Shadchan Profile State
+  const [shadchanProfile, setShadchanProfile] = useState<any>(initialShadchan || {});
   const [shadchans, setShadchans] = useState<any[]>([]);
 
   // Templates Data
@@ -261,18 +425,42 @@ const ShadchanDashboard: React.FC<ShadchanDashboardProps> = ({ profiles, onUpdat
           api.getMatches(),
           api.getTasks(),
           api.getActivities(),
-          api.getShadchanProfile(),
+          initialShadchan?.id ? api.getShadchanProfile(initialShadchan.id) : Promise.resolve(initialShadchan),
           api.getShadchans(),
           api.getNotifications()
         ]);
-        setMatches(matchesData);
-        setTasks(tasksData);
+
+        // Filter Matches
+        const relevantMatches = shadchanData
+          ? matchesData.filter((m: Match) =>
+            m.createdById === shadchanData.id ||
+            // Also include matches where one of the candidates is assigned to this shadchan
+            profiles.some(p => p.id === m.boyId && p.assignedShadchanId === shadchanData.id) ||
+            profiles.some(p => p.id === m.girlId && p.assignedShadchanId === shadchanData.id)
+          )
+          : matchesData;
+
+        // Filter Tasks
+        const relevantTasks = shadchanData
+          ? tasksData.filter((t: any) => t.shadchan_id === shadchanData.id)
+          : tasksData;
+
+        setMatches(relevantMatches);
+        setTasks(relevantTasks);
         setActivities(activitiesData || []);
-        setShadchanProfile(shadchanData || { name: 'Votre Nom', bio: 'Biographie...' });
+
+        if (shadchanData) {
+          setShadchanProfile(shadchanData);
+          // Sync fresh data back to parent/storage
+          if (onUpdateShadchan) onUpdateShadchan(shadchanData);
+        }
+
         setShadchans(allShadchans || []);
         setNotifications(notifsData || []);
       } catch (e) {
         console.error("Failed to load dashboard data", e);
+      } finally {
+        setIsLoading(false);
       }
     };
     fetchData();
@@ -365,8 +553,11 @@ const ShadchanDashboard: React.FC<ShadchanDashboardProps> = ({ profiles, onUpdat
     }
   };
 
+  // Helper to normalize city names
+  const normalizeCity = (city: string) => city?.trim().toUpperCase().replace(/[-_]/g, ' ') || '';
+
   // Extract unique cities from profiles
-  const uniqueCities = Array.from(new Set(profiles.map(p => p.city))).filter(Boolean).sort();
+  const uniqueCities = Array.from(new Set(profiles.map(p => normalizeCity(p.city)))).filter(Boolean).sort();
   // Extract unique tags
   const uniqueTags = Array.from(new Set(profiles.flatMap(p => p.tags || []))).filter(Boolean).sort();
 
@@ -389,21 +580,22 @@ const ShadchanDashboard: React.FC<ShadchanDashboardProps> = ({ profiles, onUpdat
       const searchTerms = searchQuery.toLowerCase().split(' ').filter(Boolean);
       const matchesSearch = searchTerms.length === 0 || searchTerms.every(term => profileString.includes(term));
       const matchesReligion = selectedReligiousLevel ? p.religiousLevel === selectedReligiousLevel : true;
-      const matchesCity = selectedCity ? p.city === selectedCity : true;
+      const matchesCity = selectedCity ? normalizeCity(p.city) === selectedCity : true;
       const matchesFavorite = showFavoritesOnly ? p.isFavorite : true;
       const matchesTag = selectedTag ? p.tags?.includes(selectedTag) : true;
       const matchesMyCandidates = showOnlyMyCandidates ? p.assignedShadchanId === shadchanProfile?.id : true;
 
-      // Exclusivity filter: hide profiles that are in a non-archived match NOT created by current shadchan
+      // Exclusivity filter: hide profiles that are in a non-archived match (regardless of creator)
+      // We removed this to let Shadchan see matched candidates
+      /*
       const isExclusivelyMatched = matches.some(m =>
         (m.boyId === p.id || m.girlId === p.id) &&
         m.status !== MatchStatus.ARCHIVED &&
-        m.status !== MatchStatus.DROPPED &&
-        m.createdById !== undefined &&
-        m.createdById !== shadchanProfile?.id
+        m.status !== MatchStatus.DROPPED
       );
+      */
 
-      return matchesGender && matchesSearch && matchesReligion && matchesCity && matchesFavorite && matchesTag && matchesMyCandidates && !isExclusivelyMatched;
+      return matchesGender && matchesSearch && matchesReligion && matchesCity && matchesFavorite && matchesTag && matchesMyCandidates;
     })
     .sort((a, b) => {
       switch (sortOption) {
@@ -426,7 +618,6 @@ const ShadchanDashboard: React.FC<ShadchanDashboardProps> = ({ profiles, onUpdat
 
   const handleProfileSelect = (profile: Profile) => {
     setSelectedProfile(profile);
-    setSuggestions(null); // Reset previous suggestions
     setNoteBuffer(profile.privateNotes || '');
   };
 
@@ -475,6 +666,31 @@ const ShadchanDashboard: React.FC<ShadchanDashboardProps> = ({ profiles, onUpdat
     }
   };
 
+  const handleDeleteMatch = async (matchId: string) => {
+    // Optimistic update
+    const matchToDelete = matches.find(m => m.id === matchId);
+    setMatches(prev => prev.filter(m => m.id !== matchId));
+
+    try {
+      await api.deleteMatch(matchId);
+      success("Match supprimé définitivement.");
+
+      // Log activity
+      if (matchToDelete) {
+        const boy = profiles.find(p => p.id === matchToDelete.boyId);
+        const girl = profiles.find(p => p.id === matchToDelete.girlId);
+        logActivity('MATCH_STATUS', `Match supprimé entre ${boy?.firstName} et ${girl?.firstName}`);
+      }
+    } catch (err) {
+      console.error(err);
+      showError("Erreur lors de la suppression du match.");
+      // Revert
+      if (matchToDelete) {
+        setMatches(prev => [...prev, matchToDelete]);
+      }
+    }
+  };
+
   const createMatchFromSuggestion = (candidateProfile: Profile, reasoning: string) => {
     if (!selectedProfile) return;
 
@@ -482,7 +698,28 @@ const ShadchanDashboard: React.FC<ShadchanDashboardProps> = ({ profiles, onUpdat
     const boyId = selectedProfile.gender === Gender.MALE ? selectedProfile.id : candidateProfile.id;
     const girlId = selectedProfile.gender === Gender.FEMALE ? selectedProfile.id : candidateProfile.id;
 
-    // Check if match already exists
+    // Check for active matches to enforce exclusivity
+    const boyActiveMatch = matches.find(m =>
+      (m.boyId === boyId || m.girlId === boyId) &&
+      m.status !== MatchStatus.ARCHIVED &&
+      m.status !== MatchStatus.DROPPED
+    );
+    if (boyActiveMatch) {
+      alert("Le candidat est déjà dans un match actif.");
+      return;
+    }
+
+    const girlActiveMatch = matches.find(m =>
+      (m.boyId === girlId || m.girlId === girlId) &&
+      m.status !== MatchStatus.ARCHIVED &&
+      m.status !== MatchStatus.DROPPED
+    );
+    if (girlActiveMatch) {
+      alert("La candidate est déjà dans un match actif.");
+      return;
+    }
+
+    // Check if match already exists (same pair)
     const exists = matches.some(m => (m.boyId === boyId && m.girlId === girlId));
     if (exists) {
       alert("Ce match existe déjà dans le pipeline.");
@@ -500,7 +737,24 @@ const ShadchanDashboard: React.FC<ShadchanDashboardProps> = ({ profiles, onUpdat
     };
 
     setMatches(prev => [...prev, newMatch]);
-    api.saveMatch(newMatch).catch(console.error);
+    api.saveMatch(newMatch).then(() => {
+      // Auto-assign candidates to this shadchan if they were unassigned
+      // This prevents them from showing up as "Unassigned" for other shadchanim
+      if (shadchanProfile?.id) {
+        const boy = profiles.find(p => p.id === boyId);
+        const girl = profiles.find(p => p.id === girlId);
+
+        if (boy && !boy.assignedShadchanId) {
+          api.updateProfile({ ...boy, assignedShadchanId: shadchanProfile.id });
+          onUpdateProfile({ ...boy, assignedShadchanId: shadchanProfile.id });
+        }
+        if (girl && !girl.assignedShadchanId) {
+          api.updateProfile({ ...girl, assignedShadchanId: shadchanProfile.id });
+          onUpdateProfile({ ...girl, assignedShadchanId: shadchanProfile.id });
+        }
+      }
+    }).catch(console.error);
+
     logActivity('MATCH_NEW', `Nouveau match (IA) créé`);
     alert("Match ajouté au pipeline dans 'Recherche' !");
     setCurrentView('pipeline');
@@ -545,25 +799,38 @@ const ShadchanDashboard: React.FC<ShadchanDashboardProps> = ({ profiles, onUpdat
     }
   };
 
-  const runAIMatchmaking = async () => {
-    if (!selectedProfile) return;
-    setSuggestions(null); // Clear previous suggestions immediately
-    setIsAnalyzing(true);
-    try {
-      const response = await findMatchesForProfile(selectedProfile, profiles, matchCriteria);
-      setSuggestions(response.suggestions);
-    } catch (err) {
-      showError("Erreur lors de l'analyse.");
-    } finally {
-      setIsAnalyzing(false);
-    }
-  };
+
 
   const handleManualMatchSubmit = () => {
     if (!manualMatchBoyId || !manualMatchGirlId) {
       alert("Veuillez sélectionner un homme et une femme.");
       return;
     }
+    const checkAvailability = () => {
+      const boyActiveMatch = matches.find(m =>
+        (m.boyId === manualMatchBoyId || m.girlId === manualMatchBoyId) &&
+        m.status !== MatchStatus.ARCHIVED &&
+        m.status !== MatchStatus.DROPPED
+      );
+      if (boyActiveMatch) return "Le candidat (Homme) est déjà dans un match actif.";
+
+      const girlActiveMatch = matches.find(m =>
+        (m.boyId === manualMatchGirlId || m.girlId === manualMatchGirlId) &&
+        m.status !== MatchStatus.ARCHIVED &&
+        m.status !== MatchStatus.DROPPED
+      );
+      if (girlActiveMatch) return "La candidate (Femme) est déjà dans un match actif.";
+
+      return null;
+    };
+
+    const availabilityError = checkAvailability();
+    if (availabilityError) {
+      alert(availabilityError);
+      return;
+    }
+
+    // Legacy check for exact duplicate (covered by above but kept for safety/clarity if needed, though availability check is stricter)
     const exists = matches.some(m => (m.boyId === manualMatchBoyId && m.girlId === manualMatchGirlId));
     if (exists) {
       alert("Ce match existe déjà.");
@@ -655,10 +922,10 @@ const ShadchanDashboard: React.FC<ShadchanDashboardProps> = ({ profiles, onUpdat
   // Task Handlers
   const handleAddTask = (textSource?: string) => {
     const text = textSource || taskInputRef.current?.value || '';
-    console.log("handleAddTask called. Text from:", textSource ? "modal" : "ref", "Value:", text);
+
 
     if (!text.trim()) {
-      console.log("Empty task text, opening modal.");
+
       setShowAddTaskModal(true);
       return;
     }
@@ -669,7 +936,8 @@ const ShadchanDashboard: React.FC<ShadchanDashboardProps> = ({ profiles, onUpdat
       id: taskId,
       text: text,
       completed: false,
-      createdAt: Date.now()
+      createdAt: Date.now(),
+      shadchan_id: shadchanProfile?.id
     };
 
     // Optimistic update
@@ -720,6 +988,15 @@ const ShadchanDashboard: React.FC<ShadchanDashboardProps> = ({ profiles, onUpdat
     alert("Copié dans le presse-papier !");
   };
 
+  const getLastSeenText = (timestamp?: number) => {
+    if (!timestamp) return { text: "Hors ligne", color: "text-wedding-navy/40", active: false };
+    const diff = Date.now() - timestamp;
+    if (diff < 5 * 60 * 1000) return { text: "En ligne", color: "text-green-600", active: true };
+    if (diff < 60 * 60 * 1000) return { text: `Il y a ${Math.floor(diff / 60000)} min`, color: "text-wedding-navy/60", active: false };
+    if (diff < 24 * 60 * 60 * 1000) return { text: `Il y a ${Math.floor(diff / 3600000)} h`, color: "text-wedding-navy/60", active: false };
+    return { text: new Date(timestamp).toLocaleDateString(), color: "text-wedding-navy/40", active: false };
+  };
+
   const handleAddInteraction = () => {
     if (!selectedProfile || !onUpdateProfile || !interactionNotes.trim()) return;
     const newInteraction = {
@@ -748,21 +1025,35 @@ const ShadchanDashboard: React.FC<ShadchanDashboardProps> = ({ profiles, onUpdat
     setShowFavoritesOnly(false);
   };
 
-  const handlePrintProfile = () => {
-    if (!selectedProfile) return;
-    window.print();
-  };
-
   const hasActiveFilters = searchQuery || selectedReligiousLevel || selectedCity || showFavoritesOnly;
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-neutral-50">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="w-10 h-10 animate-spin text-wedding-gold" />
+          <p className="text-wedding-navy text-sm font-medium tracking-widest uppercase animate-pulse">Chargement...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen bg-transparent font-sans text-wedding-navy overflow-hidden print:h-auto print:block relative">
       <Confetti isActive={showConfetti} onComplete={() => setShowConfetti(false)} />
 
       {/* Sidebar Navigation */}
-      <aside className={`fixed lg:relative inset-y-0 left-0 w-60 bg-wedding-navy flex flex-col shrink-0 z-50 transition-transform duration-500 transform ${isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'} print:hidden overflow-hidden`}>
+      <aside className={`fixed lg:relative inset-y-0 left-0 ${isSidebarCollapsed ? 'w-20' : 'w-60'} bg-wedding-navy flex flex-col shrink-0 z-50 transition-all duration-500 transform ${isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'} print:hidden`}>
+        {/* Toggle Button (Desktop) */}
+        <button
+          onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+          className="hidden lg:flex absolute top-5 -right-3 w-6 h-6 bg-wedding-gold text-wedding-navy rounded-full items-center justify-center z-50 shadow-md hover:scale-110 transition-transform"
+        >
+          {isSidebarCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+        </button>
+
         {/* Decorative Background Elements */}
-        <div className="absolute top-0 left-0 w-full h-full opacity-5 pointer-events-none">
+        <div className="absolute top-0 left-0 w-full h-full opacity-5 pointer-events-none overflow-hidden">
           <div className="absolute -top-24 -left-24 w-64 h-64 bg-wedding-gold rounded-full blur-[100px]"></div>
           <div className="absolute top-1/2 -right-24 w-48 h-48 bg-wedding-rose rounded-full blur-[80px]"></div>
         </div>
@@ -776,71 +1067,82 @@ const ShadchanDashboard: React.FC<ShadchanDashboardProps> = ({ profiles, onUpdat
         </button>
 
         {/* Logo Area - Compact */}
-        <div className="px-6 py-8 flex flex-col items-start relative z-10 w-full">
-          <span className="font-serif font-bold text-lg tracking-widest text-white block leading-none">BINYAN</span>
-          <span className="font-serif font-bold text-lg tracking-widest text-wedding-gold block leading-none mb-1">ADEI AD</span>
-          <div className="h-0.5 w-8 bg-white/20 rounded-full"></div>
+        <div className={`px-6 py-8 flex flex-col ${isSidebarCollapsed ? 'items-center' : 'items-start'} relative z-10 w-full transition-all`}>
+          {!isSidebarCollapsed ? (
+            <>
+              <span className="font-serif font-bold text-lg tracking-widest text-white block leading-none text-nowrap">BINYAN</span>
+              <span className="font-serif font-bold text-lg tracking-widest text-wedding-gold block leading-none mb-1 text-nowrap">ADEI AD</span>
+              <div className="h-0.5 w-8 bg-white/20 rounded-full"></div>
+            </>
+          ) : (
+            <span className="font-serif font-bold text-xl text-wedding-gold">B</span>
+          )}
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 px-6 space-y-1.5 py-6">
-          <p className="px-4 text-[10px] font-bold text-white/20 uppercase tracking-[0.2em] mb-4">Principal</p>
+        <nav className="flex-1 px-4 space-y-1.5 py-6">
+          {!isSidebarCollapsed && <p className="px-4 text-[10px] font-bold text-white/20 uppercase tracking-[0.2em] mb-4">Principal</p>}
 
-          <button onClick={() => { setCurrentView('overview'); setIsMobileSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 text-xs font-bold tracking-widest uppercase group relative overflow-hidden ${currentView === 'overview' ? 'bg-white text-wedding-navy shadow-xl' : 'text-white/60 hover:text-white hover:bg-white/5'}`}>
+          <button onClick={() => { setCurrentView('overview'); setIsMobileSidebarOpen(false); }} className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center px-0' : 'gap-4 px-5'} py-4 rounded-2xl transition-all duration-300 text-xs font-bold tracking-widest uppercase group relative overflow-hidden ${currentView === 'overview' ? 'bg-white text-wedding-navy shadow-xl' : 'text-white/60 hover:text-white hover:bg-white/5'}`} title="Vue d'ensemble">
             <Activity className={`w-5 h-5 transition-colors ${currentView === 'overview' ? 'text-wedding-navy' : 'text-wedding-gold group-hover:text-white'}`} />
-            <span className="relative z-10">Vue d'ensemble</span>
+            {!isSidebarCollapsed && <span className="relative z-10">Vue d'ensemble</span>}
             {currentView === 'overview' && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-wedding-gold rounded-r-full"></div>}
           </button>
 
-          <button onClick={() => { setCurrentView('profiles'); setIsMobileSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 text-xs font-bold tracking-widest uppercase group relative overflow-hidden ${currentView === 'profiles' ? 'bg-white text-wedding-navy shadow-xl' : 'text-white/60 hover:text-white hover:bg-white/5'}`}>
+          <button onClick={() => { setCurrentView('profiles'); setIsMobileSidebarOpen(false); setIsSidebarCollapsed(true); }} className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center px-0' : 'gap-4 px-5'} py-4 rounded-2xl transition-all duration-300 text-xs font-bold tracking-widest uppercase group relative overflow-hidden ${currentView === 'profiles' ? 'bg-white text-wedding-navy shadow-xl' : 'text-white/60 hover:text-white hover:bg-white/5'}`} title="Candidats">
             <LayoutGrid className={`w-5 h-5 transition-colors ${currentView === 'profiles' ? 'text-wedding-navy' : 'text-wedding-gold group-hover:text-white'}`} />
-            <span className="relative z-10">Candidats</span>
+            {!isSidebarCollapsed && <span className="relative z-10">Candidats</span>}
             {currentView === 'profiles' && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-wedding-gold rounded-r-full"></div>}
           </button>
 
-          <button onClick={() => { setCurrentView('pipeline'); setIsMobileSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 text-xs font-bold tracking-widest uppercase group relative overflow-hidden ${currentView === 'pipeline' ? 'bg-white text-wedding-navy shadow-xl' : 'text-white/60 hover:text-white hover:bg-white/5'}`}>
+          <button onClick={() => { setCurrentView('pipeline'); setIsMobileSidebarOpen(false); }} className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center px-0' : 'gap-4 px-5'} py-4 rounded-2xl transition-all duration-300 text-xs font-bold tracking-widest uppercase group relative overflow-hidden ${currentView === 'pipeline' ? 'bg-white text-wedding-navy shadow-xl' : 'text-white/60 hover:text-white hover:bg-white/5'}`} title="Pipeline">
             <Kanban className={`w-5 h-5 transition-colors ${currentView === 'pipeline' ? 'text-wedding-navy' : 'text-wedding-gold group-hover:text-white'}`} />
-            <span className="relative z-10">Pipeline</span>
+            {!isSidebarCollapsed && <span className="relative z-10">Pipeline</span>}
             {currentView === 'pipeline' && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-wedding-gold rounded-r-full"></div>}
           </button>
 
-          <p className="px-4 text-[10px] font-bold text-white/20 uppercase tracking-[0.2em] mb-4 mt-8">Outils</p>
+          {!isSidebarCollapsed && <p className="px-4 text-[10px] font-bold text-white/20 uppercase tracking-[0.2em] mb-4 mt-8">Outils</p>}
+          {isSidebarCollapsed && <div className="my-4 h-px bg-white/5 mx-2"></div>}
 
-          <button onClick={() => { setCurrentView('tasks'); setIsMobileSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 text-xs font-bold tracking-widest uppercase group relative overflow-hidden ${currentView === 'tasks' ? 'bg-white text-wedding-navy shadow-xl' : 'text-white/60 hover:text-white hover:bg-white/5'}`}>
+          <button onClick={() => { setCurrentView('tasks'); setIsMobileSidebarOpen(false); }} className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center px-0' : 'gap-4 px-5'} py-4 rounded-2xl transition-all duration-300 text-xs font-bold tracking-widest uppercase group relative overflow-hidden ${currentView === 'tasks' ? 'bg-white text-wedding-navy shadow-xl' : 'text-white/60 hover:text-white hover:bg-white/5'}`} title="Notes">
             <CheckSquare className={`w-5 h-5 transition-colors ${currentView === 'tasks' ? 'text-wedding-navy' : 'text-wedding-gold group-hover:text-white'}`} />
-            <span className="relative z-10">Notes</span>
+            {!isSidebarCollapsed && <span className="relative z-10">Notes</span>}
             {currentView === 'tasks' && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-wedding-gold rounded-r-full"></div>}
           </button>
 
-          <button onClick={() => { setCurrentView('messages'); setIsMobileSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 text-xs font-bold tracking-widest uppercase group relative overflow-hidden ${currentView === 'messages' ? 'bg-white text-wedding-navy shadow-xl' : 'text-white/60 hover:text-white hover:bg-white/5'}`}>
+          <button onClick={() => { setCurrentView('messages'); setIsMobileSidebarOpen(false); }} className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center px-0' : 'gap-4 px-5'} py-4 rounded-2xl transition-all duration-300 text-xs font-bold tracking-widest uppercase group relative overflow-hidden ${currentView === 'messages' ? 'bg-white text-wedding-navy shadow-xl' : 'text-white/60 hover:text-white hover:bg-white/5'}`} title="Messagerie">
             <div className="relative">
               <MessageCircle className={`w-5 h-5 transition-colors ${currentView === 'messages' ? 'text-wedding-navy' : 'text-wedding-gold group-hover:text-white'}`} />
               {unreadCount > 0 && <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full animate-ping"></span>}
             </div>
-            <span className="relative z-10 flex-1 flex items-center justify-between">
-              Messagerie
-              {unreadCount > 0 && <span className="bg-wedding-gold text-wedding-navy text-[9px] font-bold px-2 py-0.5 rounded-full">{unreadCount}</span>}
-            </span>
+            {!isSidebarCollapsed && (
+              <span className="relative z-10 flex-1 flex items-center justify-between">
+                Messagerie
+                {unreadCount > 0 && <span className="bg-wedding-gold text-wedding-navy text-[9px] font-bold px-2 py-0.5 rounded-full">{unreadCount}</span>}
+              </span>
+            )}
             {currentView === 'messages' && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-wedding-gold rounded-r-full"></div>}
           </button>
 
           <div className="mt-auto space-y-2">
-            <button onClick={() => { setCurrentView('settings'); setIsMobileSidebarOpen(false); }} className={`w-full flex items-center gap-3 px-5 py-3 rounded-xl transition-all duration-300 text-[11px] font-bold tracking-widest uppercase group relative overflow-hidden ${currentView === 'settings' ? 'bg-white text-wedding-navy shadow-xl' : 'text-white/40 hover:text-white hover:bg-white/5'}`}>
+            <button onClick={() => { setCurrentView('settings'); setIsMobileSidebarOpen(false); }} className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center px-0' : 'gap-3 px-5'} py-3 rounded-xl transition-all duration-300 text-[11px] font-bold tracking-widest uppercase group relative overflow-hidden ${currentView === 'settings' ? 'bg-white text-wedding-navy shadow-xl' : 'text-white/40 hover:text-white hover:bg-white/5'}`} title="Paramètres">
               <Settings className={`w-4 h-4 transition-colors ${currentView === 'settings' ? 'text-wedding-navy' : 'text-wedding-gold group-hover:text-white'}`} />
-              <span className="relative z-10">Paramètres</span>
+              {!isSidebarCollapsed && <span className="relative z-10">Paramètres</span>}
               {currentView === 'settings' && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-wedding-gold rounded-r-full"></div>}
             </button>
 
-            <button onClick={onLogout} className="w-full flex items-center gap-3 px-5 py-3 rounded-xl transition-all duration-300 text-[11px] font-bold tracking-widest uppercase text-white/40 hover:text-red-300 hover:bg-white/5 group">
+            <button onClick={onLogout} className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center px-0' : 'gap-3 px-5'} py-3 rounded-xl transition-all duration-300 text-[11px] font-bold tracking-widest uppercase text-white/40 hover:text-red-300 hover:bg-white/5 group`} title="Déconnexion">
               <LogOut className="w-4 h-4 text-wedding-gold group-hover:text-red-300 transition-colors" />
-              <span className="relative z-10">Déconnexion</span>
+              {!isSidebarCollapsed && <span className="relative z-10">Déconnexion</span>}
             </button>
           </div>
         </nav>
 
-        <div className="px-6 py-4 flex flex-col items-start gap-1 relative z-10 opacity-20">
-          <div className="text-[8px] font-bold text-white uppercase tracking-[0.3em]">v2.1</div>
-        </div>
+        {!isSidebarCollapsed && (
+          <div className="px-6 py-4 flex flex-col items-start gap-1 relative z-10 opacity-20">
+            <div className="text-[8px] font-bold text-white uppercase tracking-[0.3em]">v2.1</div>
+          </div>
+        )}
       </aside>
 
       {/* Overlay mobile */}
@@ -889,41 +1191,49 @@ const ShadchanDashboard: React.FC<ShadchanDashboardProps> = ({ profiles, onUpdat
               </button>
 
               {showNotificationCenter && (
-                <div className="absolute right-0 mt-4 w-80 md:w-96 glass-card border-wedding-navy/5 shadow-2xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-4 duration-300">
-                  <div className="p-4 bg-wedding-navy text-wedding-gold flex items-center justify-between">
-                    <h3 className="text-[10px] font-bold uppercase tracking-widest">Notifications</h3>
-                    {unreadNotificationsCount > 0 && (
-                      <button
-                        onClick={handleMarkAllNotificationsRead}
-                        className="text-[9px] font-bold uppercase tracking-tighter hover:underline"
-                      >
-                        Tout marquer lu
-                      </button>
-                    )}
-                  </div>
-                  <div className="max-h-[400px] overflow-y-auto custom-scrollbar">
-                    {notifications.length === 0 ? (
-                      <div className="p-10 text-center opacity-40">
-                        <Bell className="w-10 h-10 mx-auto mb-3" />
-                        <p className="text-[10px] font-bold tracking-widest uppercase">Aucune notification</p>
+                <>
+                  <div className="fixed inset-0 z-40 bg-transparent" onClick={() => setShowNotificationCenter(false)} />
+                  <div className="absolute right-0 mt-4 w-80 md:w-96 glass-card border-wedding-navy/5 shadow-2xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-4 duration-300">
+                    <div className="p-4 bg-wedding-navy text-wedding-gold flex items-center justify-between">
+                      <h3 className="text-[10px] font-bold uppercase tracking-widest">Notifications</h3>
+                      <div className="flex gap-3">
+                        {unreadNotificationsCount > 0 && (
+                          <button
+                            onClick={handleMarkAllNotificationsRead}
+                            className="text-[9px] font-bold uppercase tracking-tighter hover:underline"
+                          >
+                            Tout marquer lu
+                          </button>
+                        )}
+                        <button onClick={() => setShowNotificationCenter(false)} className="hover:text-white transition-colors">
+                          <X className="w-3.5 h-3.5" />
+                        </button>
                       </div>
-                    ) : (
-                      notifications.map(notif => (
-                        <div
-                          key={notif.id}
-                          onClick={() => handleMarkNotificationRead(notif.id)}
-                          className={`p-4 border-b border-wedding-navy/5 cursor-pointer transition-colors hover:bg-wedding-navy/5 flex gap-4 ${!notif.read ? 'bg-wedding-gold/5' : ''}`}
-                        >
-                          <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${!notif.read ? 'bg-wedding-gold' : 'bg-transparent'}`}></div>
-                          <div>
-                            <p className="text-[11px] font-bold text-wedding-navy mb-1 leading-tight">{notif.content}</p>
-                            <p className="text-[9px] font-medium text-wedding-navy/40 uppercase tracking-widest">{new Date(notif.createdAt).toLocaleString()}</p>
-                          </div>
+                    </div>
+                    <div className="max-h-[400px] overflow-y-auto custom-scrollbar">
+                      {notifications.length === 0 ? (
+                        <div className="p-10 text-center opacity-40">
+                          <Bell className="w-10 h-10 mx-auto mb-3" />
+                          <p className="text-[10px] font-bold tracking-widest uppercase">Aucune notification</p>
                         </div>
-                      ))
-                    )}
+                      ) : (
+                        notifications.map(notif => (
+                          <div
+                            key={notif.id}
+                            onClick={() => handleMarkNotificationRead(notif.id)}
+                            className={`p-4 border-b border-wedding-navy/5 cursor-pointer transition-colors hover:bg-wedding-navy/5 flex gap-4 ${!notif.read ? 'bg-wedding-gold/5' : ''}`}
+                          >
+                            <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${!notif.read ? 'bg-wedding-gold' : 'bg-transparent'}`}></div>
+                            <div>
+                              <p className="text-[11px] font-bold text-wedding-navy mb-1 leading-tight">{notif.content}</p>
+                              <p className="text-[9px] font-medium text-wedding-navy/40 uppercase tracking-widest">{new Date(notif.createdAt).toLocaleString()}</p>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
                   </div>
-                </div>
+                </>
               )}
             </div>
 
@@ -944,9 +1254,14 @@ const ShadchanDashboard: React.FC<ShadchanDashboardProps> = ({ profiles, onUpdat
             currentView === 'pipeline' && (
               <div className="flex-1 overflow-hidden">
                 <MatchPipeline
-                  matches={matches.filter(m => m.createdById === undefined || m.createdById === shadchanProfile?.id)}
+                  matches={matches} // Filter out suppressed/deleted if needed, but matches state is already updated
                   profiles={profiles}
                   onUpdateStatus={handleUpdateMatchStatus}
+                  onDeleteMatch={handleDeleteMatch}
+                  onViewProfile={(profile) => {
+                    setSelectedProfile(profile);
+                    setCurrentView('profiles');
+                  }}
                 />
               </div>
             )
@@ -1136,7 +1451,12 @@ const ShadchanDashboard: React.FC<ShadchanDashboardProps> = ({ profiles, onUpdat
                     <button
                       onClick={() => {
                         api.updateShadchanProfile(shadchanProfile)
-                          .then(() => success('Profil sauvegardé avec succès'))
+                          .then(() => {
+                            success('Profil sauvegardé avec succès');
+                            if (onUpdateShadchan) {
+                              onUpdateShadchan(shadchanProfile);
+                            }
+                          })
                           .catch(err => {
                             console.error(err);
                             showError("Erreur lors de la sauvegarde du profil");
@@ -1251,108 +1571,84 @@ const ShadchanDashboard: React.FC<ShadchanDashboardProps> = ({ profiles, onUpdat
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                  {/* Recent Activity */}
-                  <div className="glass-card rounded-2xl p-8 border-wedding-navy/5 shadow-2xl shadow-wedding-navy/5 flex flex-col h-[500px]">
-                    <div className="flex justify-between items-center mb-8">
+                <div className="w-full">
+                  <div className="flex items-center justify-between mb-6">
+                    <h3 className="font-serif font-bold text-xl text-wedding-navy flex items-center gap-3">
+                      <Sparkles className="w-5 h-5 text-wedding-gold" />
+                      Nouveaux Candidats
+                    </h3>
+                    <button onClick={() => setCurrentView('profiles')} className="text-[10px] font-bold uppercase tracking-widest text-wedding-navy/40 hover:text-wedding-navy transition-colors">
+                      Voir tout
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+                    {[...profiles].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)).slice(0, 5).map(p => (
+                      <div key={p.id} onClick={() => { setSelectedProfile(p); setCurrentView('profiles'); }} className="glass-card p-4 rounded-xl border-wedding-navy/5 shadow-lg shadow-wedding-navy/5 hover:border-wedding-gold/30 hover:shadow-xl transition-all cursor-pointer group hover:-translate-y-1">
+                        <div className="flex flex-col items-center text-center">
+                          <div className="w-16 h-16 rounded-full mb-3 p-1 border border-wedding-navy/5 group-hover:border-wedding-gold/50 transition-colors">
+                            {p.imageUrl ?
+                              <img src={p.imageUrl} alt={p.firstName} className="w-full h-full rounded-full object-cover" />
+                              : <div className="w-full h-full rounded-full bg-wedding-navy/5 flex items-center justify-center text-wedding-navy font-serif font-bold text-lg">{p.firstName.charAt(0)}</div>
+                            }
+                          </div>
+                          <h4 className="font-bold text-wedding-navy text-sm mb-0.5">{p.firstName} {p.lastName}</h4>
+                          <p className="text-[10px] text-wedding-text/50 font-bold uppercase tracking-wide mb-2">{p.age} ans • {p.city}</p>
+                          <div className="text-[9px] bg-wedding-navy/5 text-wedding-navy/60 px-2 py-1 rounded-md font-bold">
+                            {p.religiousLevel}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    {profiles.length === 0 && (
+                      <div className="col-span-full text-center py-8 text-wedding-navy/30 italic text-sm">
+                        Aucun candidat récent
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="w-full">
+                  {/* Recent Activity - Full Width */}
+                  <div className="glass-card rounded-2xl p-8 border-wedding-navy/5 shadow-2xl shadow-wedding-navy/5 flex flex-col h-[500px] relative overflow-hidden">
+                    <div className="flex justify-between items-center mb-6 shrink-0 relative z-10">
                       <h3 className="font-serif font-bold text-xl text-wedding-navy flex items-center gap-3">
-                        <Activity className="w-6 h-6 text-wedding-gold" />
+                        <Activity className="w-5 h-5 text-wedding-gold" />
                         Journal d'Activité
                       </h3>
-                      <div className="text-[10px] font-bold text-wedding-navy/40 uppercase tracking-widest">
+                      <div className="text-[9px] font-bold text-wedding-navy/30 uppercase tracking-[0.2em] px-2 py-1 bg-wedding-navy/5 rounded-md">
                         Temps Réel
                       </div>
                     </div>
 
-                    <div className="space-y-6 overflow-y-auto custom-scrollbar pr-2 flex-1">
+                    <div className="space-y-4 overflow-y-auto custom-scrollbar pr-2 flex-1 pb-10 relative z-10">
                       {activities.length === 0 ? (
                         <div className="flex flex-col items-center justify-center h-full opacity-30 italic">
-                          <Clock className="w-12 h-12 mb-4" />
-                          <p>Aucun événement récent.</p>
+                          <Clock className="w-10 h-10 mb-4" />
+                          <p className="text-sm">Aucun événement récent.</p>
                         </div>
                       ) : (
                         activities.map(act => (
-                          <div key={act.id} className="flex gap-4 text-sm border-b border-wedding-navy/5 pb-5 last:border-0 last:pb-0 hover:translate-x-1 transition-transform cursor-pointer group">
-                            <div className={`mt-1.5 w-2 h-2 rounded-full shrink-0 group-hover:scale-150 transition-transform ${act.type === 'MATCH_NEW' ? 'bg-wedding-gold shadow-lg shadow-wedding-gold/40' :
+                          <div key={act.id} className="flex gap-4 p-4 rounded-xl hover:bg-white transition-all cursor-pointer group border border-transparent hover:border-wedding-navy/5 hover:shadow-sm">
+                            <div className={`mt-2 w-2 h-2 rounded-full shrink-0 group-hover:scale-125 transition-transform duration-300 ${act.type === 'MATCH_NEW' ? 'bg-wedding-gold shadow-[0_0_10px_rgba(212,175,55,0.4)]' :
                               act.type === 'MATCH_STATUS' ? 'bg-wedding-navy' :
-                                act.type === 'PROFILE_NEW' ? 'bg-green-400' :
-                                  'bg-wedding-text/20'
+                                act.type === 'PROFILE_NEW' ? 'bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.3)]' :
+                                  'bg-wedding-navy/20'
                               }`} />
                             <div className="flex-1">
-                              <p className="text-wedding-navy font-bold leading-tight group-hover:text-wedding-gold transition-colors">{act.description}</p>
-                              <p className="text-[10px] text-wedding-text/40 font-bold uppercase tracking-widest mt-1.5 flex items-center gap-1.5">
-                                <Clock className="w-3 h-3" /> {new Date(act.timestamp).toLocaleString()}
+                              <p className="text-wedding-navy text-sm font-semibold leading-relaxed group-hover:text-wedding-navy/80 transition-colors">
+                                {formatActivityDescription(act.description)}
+                              </p>
+                              <p className="text-[9px] text-wedding-text/40 font-bold uppercase tracking-wider mt-2 flex items-center gap-1.5 opacity-60 group-hover:opacity-100 transition-opacity">
+                                <Clock className="w-2.5 h-2.5" /> <span className="pt-0.5">{new Date(act.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • {new Date(act.timestamp).toLocaleDateString()}</span>
                               </p>
                             </div>
                           </div>
                         ))
                       )}
                     </div>
-                  </div>
-
-                  {/* Matching Insights & Quick Actions */}
-                  <div className="flex flex-col gap-6 h-[500px]">
-                    <div className="glass-card rounded-2xl p-8 border-wedding-navy/5 shadow-2xl shadow-wedding-navy/5 flex-1 relative overflow-hidden group">
-                      <div className="absolute top-0 right-0 p-8 opacity-[0.03] rotate-12 group-hover:rotate-45 transition-transform duration-1000">
-                        <Sparkles className="w-40 h-40 text-wedding-gold" />
-                      </div>
-
-                      <h3 className="font-serif font-bold text-xl text-wedding-navy mb-8 flex items-center gap-3 relative z-10">
-                        <Zap className="w-6 h-6 text-wedding-gold" />
-                        Insights IA & Matchs
-                      </h3>
-
-                      <div className="space-y-4 relative z-10 overflow-y-auto max-h-[350px] custom-scrollbar pr-2">
-                        {dynamicInsights.length === 0 ? (
-                          <div className="text-center py-12 opacity-30 italic">
-                            <Sparkles className="w-12 h-12 mx-auto mb-4" />
-                            <p>Analyse en cours...</p>
-                          </div>
-                        ) : (
-                          dynamicInsights.map(insight => (
-                            <div key={insight.id} className="p-4 bg-wedding-navy/5 rounded-2xl border border-wedding-navy/5 hover:bg-wedding-navy/10 transition-all cursor-pointer group shadow-sm">
-                              <div className="flex items-center gap-3 mb-2">
-                                <div className={`w-1.5 h-1.5 rounded-full ${insight.type === 'SUGGESTION' ? 'bg-wedding-gold' :
-                                  insight.type === 'HEALTH' ? 'bg-red-500' :
-                                    'bg-blue-500'
-                                  }`} />
-                                <span className="text-[10px] font-bold text-wedding-navy/60 uppercase tracking-widest">{insight.type}</span>
-                              </div>
-                              <p className="text-xs font-bold text-wedding-navy mb-1">{insight.text}</p>
-                              <p className="text-[9px] text-wedding-navy/40 font-medium">{insight.detail}</p>
-                            </div>
-                          ))
-                        )}
-
-                        <button
-                          onClick={() => setCurrentView('profiles')}
-                          className="w-full mt-2 py-3 bg-wedding-navy text-wedding-gold rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-opacity-95 transition-all active:scale-95 shadow-lg shadow-wedding-navy/10"
-                        >
-                          Voir les candidats
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="glass-card rounded-2xl p-6 border-wedding-navy/5 shadow-2xl shadow-wedding-navy/5">
-                      <h3 className="font-serif font-bold text-lg text-wedding-navy mb-4 flex items-center gap-3">
-                        <Search className="w-5 h-5 text-wedding-gold" />
-                        Navigation Rapide
-                      </h3>
-                      <div className="grid grid-cols-2 gap-3">
-                        <button onClick={() => setCurrentView('profiles')} className="p-4 bg-wedding-navy/5 rounded-xl hover:bg-wedding-navy hover:text-white transition-all duration-300 text-left group">
-                          <div className="font-bold text-[10px] tracking-widest uppercase">Candidats</div>
-                        </button>
-                        <button onClick={() => setCurrentView('pipeline')} className="p-4 bg-wedding-navy/5 rounded-xl hover:bg-wedding-navy hover:text-white transition-all duration-300 text-left group">
-                          <div className="font-bold text-[10px] tracking-widest uppercase">Pipeline</div>
-                        </button>
-                        <button onClick={() => setCurrentView('tasks')} className="p-4 bg-wedding-navy/5 rounded-xl hover:bg-wedding-navy hover:text-white transition-all duration-300 text-left group">
-                          <div className="font-bold text-[10px] tracking-widest uppercase">Notes</div>
-                        </button>
-                        <button onClick={() => setShowManualMatchModal(true)} className="p-4 bg-wedding-navy/5 rounded-xl hover:bg-wedding-navy hover:text-white transition-all duration-300 text-left group">
-                          <div className="font-bold text-[10px] tracking-widest uppercase">Match</div>
-                        </button>
-                      </div>
-                    </div>
+                    {/* Gradient Fade at bottom */}
+                    <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-white to-transparent pointer-events-none z-20 rounded-b-2xl"></div>
                   </div>
                 </div>
               </div>
@@ -1636,14 +1932,6 @@ const ShadchanDashboard: React.FC<ShadchanDashboardProps> = ({ profiles, onUpdat
                                 <h1 className="text-3xl md:text-5xl font-serif font-bold text-wedding-navy mb-2 tracking-tight">{selectedProfile.firstName} {selectedProfile.lastName}</h1>
                                 <div className="flex gap-2">
                                   <button
-                                    onClick={() => setIsCvMode(true)}
-                                    className="p-2.5 rounded-2xl bg-wedding-navy text-wedding-gold hover:bg-opacity-90 transition-all shadow-lg flex items-center gap-2"
-                                    title="Générer CV"
-                                  >
-                                    <FileText className="w-5 h-5" />
-                                    <span className="text-[12px] font-bold uppercase tracking-widest hidden sm:inline">Générer CV</span>
-                                  </button>
-                                  <button
                                     onClick={() => {
                                       setModalAction('profile_note');
                                       setModalTaskText(noteBuffer);
@@ -1657,9 +1945,6 @@ const ShadchanDashboard: React.FC<ShadchanDashboardProps> = ({ profiles, onUpdat
                                   </button>
                                   <button onClick={(e) => toggleFavorite(e, selectedProfile)} className={`p-2.5 rounded-2xl transition-all duration-300 shadow-sm ${selectedProfile.isFavorite ? 'text-wedding-navy bg-wedding-gold ring-1 ring-wedding-gold' : 'text-wedding-navy/20 bg-white border border-wedding-navy/5 hover:text-wedding-gold hover:border-wedding-gold'}`}>
                                     <Star className={`w-6 h-6 ${selectedProfile.isFavorite ? 'fill-current' : ''}`} />
-                                  </button>
-                                  <button onClick={handlePrintProfile} className="p-2.5 rounded-2xl text-wedding-navy/20 bg-white border border-wedding-navy/5 hover:text-wedding-navy hover:border-wedding-navy transition-all shadow-sm" title="Imprimer le CV">
-                                    <Printer className="w-6 h-6" />
                                   </button>
                                 </div>
                               </div>
@@ -1761,6 +2046,8 @@ const ShadchanDashboard: React.FC<ShadchanDashboardProps> = ({ profiles, onUpdat
                             <div className="bg-white/40 p-5 rounded-3xl border border-wedding-navy/5 shadow-inner">
                               <p className="text-[9px] font-bold text-wedding-navy/40 uppercase tracking-widest mb-2 italic">Détails Physiques</p>
                               <div className="space-y-1">
+                                <p className="text-sm font-bold text-wedding-navy flex justify-between">Taille: <span className="font-medium opacity-70">{selectedProfile.height ? `${selectedProfile.height} cm` : 'Non spécifié'}</span></p>
+                                <p className="text-sm font-bold text-wedding-navy flex justify-between">Morphologie: <span className="font-medium opacity-70">{selectedProfile.bodyType || 'Non spécifié'}</span></p>
                                 <p className="text-sm font-bold text-wedding-navy flex justify-between">Teint: <span className="font-medium opacity-70">{selectedProfile.skinColor || 'Non spécifié'}</span></p>
                                 <p className="text-sm font-bold text-wedding-navy flex justify-between">Yeux: <span className="font-medium opacity-70">{selectedProfile.eyeColor || 'Non spécifié'}</span></p>
                                 <p className="text-sm font-bold text-wedding-navy flex justify-between">Cheveux: <span className="font-medium opacity-70">{selectedProfile.hairColor || 'Non spécifié'}</span></p>
@@ -1865,6 +2152,12 @@ const ShadchanDashboard: React.FC<ShadchanDashboardProps> = ({ profiles, onUpdat
                               {selectedProfile.personalClothingDetails && (
                                 <p className="text-xs text-wedding-navy/60 italic leading-relaxed border-t border-wedding-navy/5 pt-2">"{selectedProfile.personalClothingDetails}"</p>
                               )}
+                              {selectedProfile.headCoveringPreference && (
+                                <div className="mt-3 pt-3 border-t border-wedding-navy/5">
+                                  <p className="text-[9px] font-bold text-wedding-navy/40 uppercase tracking-widest mb-1 italic">Couvre-Chef</p>
+                                  <p className="text-sm font-bold text-wedding-navy">{selectedProfile.headCoveringPreference}</p>
+                                </div>
+                              )}
                             </div>
                             {/* Phone */}
                             <div className="bg-white/40 p-6 rounded-3xl border border-wedding-navy/5 shadow-inner">
@@ -1966,6 +2259,12 @@ const ShadchanDashboard: React.FC<ShadchanDashboardProps> = ({ profiles, onUpdat
                                   {selectedProfile.motherPhone && <p className="text-[10px] text-wedding-gold font-bold mt-1">{selectedProfile.motherPhone}</p>}
                                 </div>
                               </div>
+                              {selectedProfile.parentsOrigin && (
+                                <div className="pt-4 border-t border-wedding-navy/5">
+                                  <p className="text-[9px] font-bold text-wedding-navy/40 uppercase tracking-widest mb-1 italic">Origines</p>
+                                  <p className="text-sm font-bold text-wedding-navy">{selectedProfile.parentsOrigin}</p>
+                                </div>
+                              )}
                               {selectedProfile.familyDescription && (
                                 <div className="pt-4 border-t border-wedding-navy/5">
                                   <p className="text-[9px] font-bold text-wedding-navy/40 uppercase tracking-widest mb-2 italic">Structure & Milieu</p>
@@ -2217,207 +2516,6 @@ const ShadchanDashboard: React.FC<ShadchanDashboardProps> = ({ profiles, onUpdat
                           </button>
                         </div>
                       </div>
-
-                      <div className="border-t border-wedding-navy/5 pt-12 mt-12">
-                        <div className="flex flex-col sm:flex-row items-center justify-between gap-6 mb-10">
-                          <div>
-                            <h3 className="text-2xl font-serif font-bold text-wedding-navy flex items-center gap-3">
-                              <Sparkles className="w-6 h-6 text-wedding-gold" />
-                              Suggestions de Compatibilité
-                            </h3>
-                            <p className="text-wedding-text/60 text-sm mt-2 font-medium">Analyse basée sur la Hashkafa, l'âge et les valeurs profondes.</p>
-
-                            <button
-                              onClick={() => setShowAdvancedMatch(!showAdvancedMatch)}
-                              className="text-wedding-gold text-[10px] font-bold uppercase tracking-widest hover:text-wedding-navy flex items-center gap-1.5 mt-4 transition-colors"
-                            >
-                              {showAdvancedMatch ? '- Masquer les critères' : '+ Critères de recherche avancés'}
-                            </button>
-
-                            {showAdvancedMatch && (
-                              <div className="mt-6 glass-card p-6 border-wedding-navy/5 grid grid-cols-2 gap-6 text-sm animate-fade-in w-full max-w-xl">
-                                <div>
-                                  <label className="block text-[10px] font-bold text-wedding-navy/40 uppercase tracking-widest mb-2">Âge Min / Max</label>
-                                  <div className="flex gap-3">
-                                    <input
-                                      type="number"
-                                      className="w-full bg-wedding-navy/5 border border-wedding-navy/5 rounded-xl px-3 py-2 text-xs text-wedding-navy focus:outline-none focus:bg-white"
-                                      placeholder="Min"
-                                      value={matchCriteria.minAge || ''}
-                                      onChange={e => setMatchCriteria({ ...matchCriteria, minAge: e.target.value ? parseInt(e.target.value) : undefined })}
-                                    />
-                                    <input
-                                      type="number"
-                                      className="w-full bg-wedding-navy/5 border border-wedding-navy/5 rounded-xl px-3 py-2 text-xs text-wedding-navy focus:outline-none focus:bg-white"
-                                      placeholder="Max"
-                                      value={matchCriteria.maxAge || ''}
-                                      onChange={e => setMatchCriteria({ ...matchCriteria, maxAge: e.target.value ? parseInt(e.target.value) : undefined })}
-                                    />
-                                  </div>
-                                </div>
-                                <div>
-                                  <label className="block text-[10px] font-bold text-wedding-navy/40 uppercase tracking-widest mb-2">Occupation</label>
-                                  <input
-                                    type="text"
-                                    className="w-full bg-wedding-navy/5 border border-wedding-navy/5 rounded-xl px-4 py-2 text-xs text-wedding-navy focus:outline-none focus:bg-white"
-                                    placeholder="Ex: Médecin"
-                                    value={matchCriteria.occupation || ''}
-                                    onChange={e => setMatchCriteria({ ...matchCriteria, occupation: e.target.value })}
-                                  />
-                                </div>
-                                <div className="col-span-2">
-                                  <label className="block text-[10px] font-bold text-wedding-navy/40 uppercase tracking-widest mb-2">Hashkafa Requise</label>
-                                  <div className="flex flex-wrap gap-3">
-                                    {Object.values(ReligiousLevel).slice(0, 4).map(level => (
-                                      <label key={level} className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-wedding-navy/60 cursor-pointer hover:text-wedding-navy transition-colors">
-                                        <input
-                                          type="checkbox"
-                                          className="w-4 h-4 rounded-md border-wedding-navy/20 text-wedding-navy focus:ring-wedding-gold"
-                                          checked={matchCriteria.preferredHashkafa?.includes(level) || false}
-                                          onChange={e => {
-                                            const current = matchCriteria.preferredHashkafa || [];
-                                            if (e.target.checked) {
-                                              setMatchCriteria({ ...matchCriteria, preferredHashkafa: [...current, level] });
-                                            } else {
-                                              setMatchCriteria({ ...matchCriteria, preferredHashkafa: current.filter(l => l !== level) });
-                                            }
-                                          }}
-                                        />
-                                        {level}
-                                      </label>
-                                    ))}
-                                  </div>
-                                </div>
-
-                                <div className="col-span-1">
-                                  <label className="block text-[10px] font-bold text-wedding-navy/40 uppercase tracking-widest mb-2">Statut Aliyah</label>
-                                  <select
-                                    className="w-full bg-wedding-navy/5 border border-wedding-navy/5 rounded-xl px-3 py-2 text-xs text-wedding-navy focus:outline-none focus:bg-white"
-                                    value={matchCriteria.aliyahStatus || ''}
-                                    onChange={(e) => setMatchCriteria({ ...matchCriteria, aliyahStatus: e.target.value })}
-                                  >
-                                    <option value="">Peu importe</option>
-                                    <option value="Oleh Hadash">Oleh Hadash</option>
-                                    <option value="Citoyen">Citoyen</option>
-                                    <option value="Touriste">Touriste</option>
-                                    <option value="En cours">En cours</option>
-                                  </select>
-                                </div>
-
-                                <div className="col-span-1">
-                                  <label className="block text-[10px] font-bold text-wedding-navy/40 uppercase tracking-widest mb-2">Langues</label>
-                                  <select
-                                    multiple
-                                    className="w-full bg-wedding-navy/5 border border-wedding-navy/5 rounded-xl px-3 py-2 text-xs h-24 text-wedding-navy focus:outline-none focus:bg-white"
-                                    value={matchCriteria.languages || []}
-                                    onChange={(e) => {
-                                      const options = Array.from(e.target.selectedOptions, (option: HTMLOptionElement) => option.value);
-                                      setMatchCriteria({ ...matchCriteria, languages: options });
-                                    }}
-                                  >
-                                    <option value="Français">Français</option>
-                                    <option value="Anglais">Anglais</option>
-                                    <option value="Hébreu">Hébreu</option>
-                                    <option value="Espagnol">Espagnol</option>
-                                  </select>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-
-                          <button
-                            onClick={runAIMatchmaking}
-                            disabled={isAnalyzing}
-                            className="px-8 py-4 bg-wedding-navy text-white rounded-2xl text-xs font-bold uppercase tracking-[0.2em] shadow-2xl shadow-wedding-navy/30 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-3 border border-wedding-gold/20"
-                          >
-                            {isAnalyzing ? <Loader2 className="w-5 h-5 animate-spin text-wedding-gold" /> : <Search className="w-5 h-5 text-wedding-gold" />}
-                            {isAnalyzing ? 'Analyse...' : 'Trouver des profils'}
-                          </button>
-                        </div>
-
-                        {/* Loader Squelette */}
-                        {isAnalyzing && (
-                          <div className="grid grid-cols-1 gap-6">
-                            {[1, 2, 3].map((i) => (
-                              <div key={i} className="glass-card border-wedding-navy/5 p-8 h-48 relative overflow-hidden flex flex-col gap-6">
-                                <div className="flex items-start gap-6">
-                                  <Skeleton className="w-16 h-16 rounded-3xl shrink-0 bg-wedding-navy/5" />
-                                  <div className="space-y-3 flex-1 pt-2">
-                                    <Skeleton className="h-5 w-1/3 bg-wedding-navy/5 rounded-lg" />
-                                    <Skeleton className="h-4 w-1/4 bg-wedding-navy/5 rounded-lg" />
-                                  </div>
-                                </div>
-                                <Skeleton className="h-20 w-full rounded-2xl bg-wedding-navy/5" />
-                              </div>
-                            ))}
-                          </div>
-                        )}
-
-                        {!isAnalyzing && suggestions && (
-                          <div className="grid grid-cols-1 gap-6 animate-fade-in pb-12">
-                            {suggestions.length === 0 ? (
-                              <div className="text-center py-12 glass-card border-dashed border-wedding-navy/10 !bg-wedding-navy/5">
-                                <p className="text-wedding-navy/40 italic font-serif">Aucune suggestion pertinente trouvée dans la base actuelle.</p>
-                              </div>
-                            ) : (
-                              suggestions.map((sugg, idx) => {
-                                const matchProfile = getProfileById(sugg.candidateId);
-                                if (!matchProfile) return null;
-                                return (
-                                  <div key={idx} className="glass-card p-8 border-wedding-navy/5 shadow-xl hover:shadow-2xl transition-all duration-500 relative overflow-hidden group hover:scale-[1.01]">
-                                    <div className="absolute top-0 right-0 p-6">
-                                      <div className="flex flex-col items-end gap-1">
-                                        <span className="bg-wedding-gold text-wedding-navy px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest shadow-lg shadow-wedding-gold/20 flex items-center gap-2">
-                                          <Sparkles className="w-3.5 h-3.5 fill-current" /> {sugg.matchPercentage}% de match
-                                        </span>
-                                      </div>
-                                    </div>
-
-                                    <div className="flex items-start gap-6 mb-6">
-                                      <div className="relative">
-                                        <img
-                                          src={matchProfile.imageUrl}
-                                          className="w-16 h-16 rounded-2xl object-cover bg-wedding-navy/5 border-2 border-white shadow-md"
-                                          alt=""
-                                        />
-                                        <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 border-2 border-white rounded-full"></div>
-                                      </div>
-                                      <div className="pt-1">
-                                        <h4 className="font-serif font-bold text-xl text-wedding-navy underline decoration-wedding-gold/30 underline-offset-8 decoration-2">{matchProfile.firstName} {matchProfile.lastName}</h4>
-                                        <p className="text-[10px] font-bold uppercase tracking-widest text-wedding-text/40 mt-3">{matchProfile.age} ans • {matchProfile.city}</p>
-                                      </div>
-                                    </div>
-
-                                    <div className="bg-wedding-navy/5 rounded-2xl p-6 mb-6 border border-wedding-navy/5 shadow-inner">
-                                      <p className="text-wedding-navy/70 text-sm italic font-medium leading-relaxed">"{sugg.reasoning}"</p>
-                                    </div>
-
-                                    <div className="flex items-center justify-between pt-4 border-t border-wedding-navy/5">
-                                      <div className="text-[10px] font-bold text-wedding-gold uppercase tracking-[0.2em]">
-                                        {matchProfile.religiousLevel}
-                                      </div>
-                                      <div className="flex items-center gap-4">
-                                        <button
-                                          onClick={(e) => { e.stopPropagation(); createMatchFromSuggestion(matchProfile, sugg.reasoning); }}
-                                          className="text-white bg-wedding-navy hover:bg-wedding-navy/90 px-5 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 shadow-xl shadow-wedding-navy/20 transition-all active:scale-95"
-                                        >
-                                          <Kanban className="w-3.5 h-3.5 text-wedding-gold" /> Ajouter au Pipeline
-                                        </button>
-                                        <button
-                                          onClick={() => handleViewMatch(matchProfile)}
-                                          className="text-wedding-navy/40 text-[10px] font-bold uppercase tracking-widest hover:text-wedding-navy transition-colors flex items-center gap-2"
-                                        >
-                                          Voir profil <ChevronRight className="w-4 h-4 text-wedding-gold" />
-                                        </button>
-                                      </div>
-                                    </div>
-                                  </div>
-                                )
-                              })
-                            )}
-                          </div>
-                        )}
-                      </div>
                     </div>
                   ) : null}
                 </div>
@@ -2452,7 +2550,7 @@ const ShadchanDashboard: React.FC<ShadchanDashboardProps> = ({ profiles, onUpdat
                         className="w-full bg-wedding-navy/5 border border-wedding-navy/5 rounded-2xl px-5 py-3.5 text-xs font-bold uppercase tracking-widest text-wedding-navy focus:outline-none focus:bg-white focus:border-wedding-gold/30 appearance-none cursor-pointer shadow-inner"
                       >
                         <option value="">Sélectionner...</option>
-                        {profiles.filter(p => p.gender === Gender.MALE).map(p => (
+                        {profiles.filter(p => p.gender === Gender.MALE && !matches.some(m => (m.boyId === p.id || m.girlId === p.id) && m.status !== MatchStatus.ARCHIVED && m.status !== MatchStatus.DROPPED)).map(p => (
                           <option key={p.id} value={p.id}>{p.firstName} {p.lastName}</option>
                         ))}
                       </select>
@@ -2466,7 +2564,7 @@ const ShadchanDashboard: React.FC<ShadchanDashboardProps> = ({ profiles, onUpdat
                         className="w-full bg-wedding-navy/5 border border-wedding-navy/5 rounded-2xl px-5 py-3.5 text-xs font-bold uppercase tracking-widest text-wedding-navy focus:outline-none focus:bg-white focus:border-wedding-gold/30 appearance-none cursor-pointer shadow-inner"
                       >
                         <option value="">Sélectionner...</option>
-                        {profiles.filter(p => p.gender === Gender.FEMALE).map(p => (
+                        {profiles.filter(p => p.gender === Gender.FEMALE && !matches.some(m => (m.boyId === p.id || m.girlId === p.id) && m.status !== MatchStatus.ARCHIVED && m.status !== MatchStatus.DROPPED)).map(p => (
                           <option key={p.id} value={p.id}>{p.firstName} {p.lastName}</option>
                         ))}
                       </select>
@@ -2600,26 +2698,46 @@ const ShadchanDashboard: React.FC<ShadchanDashboardProps> = ({ profiles, onUpdat
 
                       return filtered.map(p => {
                         const assignedS = shadchans.find(s => s.id === p.assignedShadchanId);
+                        const isSelected = chatProfile?.id === p.id;
+
                         return (
                           <div
                             key={p.id}
-                            onClick={() => {
-                              setChatProfile(p);
-                              // When selecting a profile from search, clear search to see them in the "active" list next time?
-                              // Or maybe keep it. The user might want to search for several.
-                            }}
-                            className={`p-5 border-b border-wedding-navy/5 cursor-pointer transition-all duration-300 ${chatProfile?.id === p.id ? 'bg-wedding-navy text-white shadow-xl scale-[1.02] relative z-10' : 'hover:bg-white/60'}`}
+                            onClick={() => setChatProfile(p)}
+                            className={`mx-3 my-1 p-3 rounded-xl cursor-pointer transition-all duration-300 border border-transparent group ${isSelected ? 'bg-white shadow-lg border-wedding-navy/5 scale-[1.02]' : 'hover:bg-white/40'}`}
                           >
-                            <div className="flex justify-between items-start">
-                              <div className={`font-bold text-sm leading-tight ${chatProfile?.id === p.id ? 'text-white' : 'text-wedding-navy'}`}>{p.firstName} {p.lastName}</div>
-                              {assignedS && (
-                                <div className={`text-[8px] px-1.5 py-0.5 rounded uppercase font-bold tracking-tighter ${chatProfile?.id === p.id ? 'bg-white/20 text-white' : 'bg-wedding-gold/20 text-wedding-gold'}`}>
-                                  {assignedS.name.split(' ')[0]}
+                            <div className="flex items-center gap-3">
+                              <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-serif font-bold shrink-0 shadow-sm transition-colors relative ${isSelected ? 'bg-wedding-navy text-wedding-gold' : 'bg-white text-wedding-navy border border-wedding-navy/5 group-hover:border-wedding-gold/30'}`}>
+                                {p.imageUrl ?
+                                  <img src={p.imageUrl} alt={p.firstName} className="w-full h-full rounded-full object-cover" />
+                                  : p.firstName.charAt(0)
+                                }
+                                {getLastSeenText(p.lastActiveAt).active && (
+                                  <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-white rounded-full shadow-sm animate-pulse" />
+                                )}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex justify-between items-baseline mb-0.5">
+                                  <h4 className={`font-bold text-xs truncate transition-colors ${isSelected ? 'text-wedding-navy' : 'text-wedding-navy/80 group-hover:text-wedding-navy'}`}>
+                                    {p.firstName} {p.lastName}
+                                  </h4>
+                                  {assignedS && (
+                                    <span className="text-[8px] opacity-40 uppercase tracking-tighter font-bold">
+                                      {assignedS.name.split(' ')[0]}
+                                    </span>
+                                  )}
                                 </div>
-                              )}
-                            </div>
-                            <div className={`text-[10px] uppercase font-bold tracking-widest mt-1.5 opacity-40 truncate ${chatProfile?.id === p.id ? 'text-white/60' : 'text-wedding-navy/60'}`}>
-                              {idsWithMessages.includes(p.id) ? "Voir la discussion" : "Démarrer une discussion"}
+                                <div className="flex items-center justify-between">
+                                  <p className={`text-[10px] truncate font-medium tracking-wide transition-colors ${isSelected ? 'text-wedding-gold/80' : 'text-wedding-navy/40 group-hover:text-wedding-navy/60'}`}>
+                                    {idsWithMessages.includes(p.id) ? "Message en attente" : "Démarrer une discussion"}
+                                  </p>
+                                  {idsWithMessages.includes(p.id) && !isSelected && (unreadCountsByUser[p.id] || 0) > 0 && (
+                                    <div className="w-5 h-5 rounded-full bg-wedding-gold text-wedding-navy text-[10px] font-bold flex items-center justify-center shadow-md shadow-wedding-gold/20 animate-in zoom-in duration-300">
+                                      {unreadCountsByUser[p.id]}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
                             </div>
                           </div>
                         );
@@ -2635,14 +2753,19 @@ const ShadchanDashboard: React.FC<ShadchanDashboardProps> = ({ profiles, onUpdat
                       <div className="p-6 border-b border-wedding-navy/5 flex items-center justify-between bg-white/40 backdrop-blur-md">
                         <div className="flex items-center gap-4">
                           <div className="w-12 h-12 rounded-2xl bg-wedding-navy text-wedding-gold flex items-center justify-center text-lg font-serif font-bold shadow-lg border-2 border-white ring-1 ring-wedding-navy/5">
-                            {chatProfile.firstName.charAt(0)}
+                            {chatProfile.ImageUrl ? <img src={chatProfile.ImageUrl} className="w-full h-full rounded-2xl object-cover" /> : chatProfile.firstName.charAt(0)}
                           </div>
                           <div>
                             <h3 className="font-serif font-bold text-xl text-wedding-navy leading-tight">{chatProfile.firstName} {chatProfile.lastName}</h3>
-                            <p className="text-[10px] text-green-600 flex items-center gap-1.5 font-bold uppercase tracking-widest mt-1">
-                              <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse shadow-sm shadow-green-200"></span>
-                              Actif maintenant
-                            </p>
+                            {(() => {
+                              const status = getLastSeenText(chatProfile.lastActiveAt);
+                              return (
+                                <p className={`text-[10px] flex items-center gap-1.5 font-bold uppercase tracking-widest mt-1 ${status.color}`}>
+                                  <span className={`w-2 h-2 rounded-full ${status.active ? 'bg-green-500 animate-pulse shadow-sm shadow-green-200' : 'bg-gray-300'}`}></span>
+                                  {status.text}
+                                </p>
+                              );
+                            })()}
                           </div>
                         </div>
                       </div>
@@ -2659,13 +2782,24 @@ const ShadchanDashboard: React.FC<ShadchanDashboardProps> = ({ profiles, onUpdat
                           </div>
                         ) : (
                           messages.map(msg => (
-                            <div key={msg.id} className={`flex ${msg.direction === 'FROM_SHADCHAN' ? 'justify-end' : 'justify-start'}`}>
-                              <div className={`max-w-[70%] p-5 rounded-3xl text-sm shadow-xl transition-transform hover:scale-[1.02] ${msg.direction === 'FROM_SHADCHAN'
-                                ? 'bg-wedding-navy text-white rounded-tr-none shadow-wedding-navy/10 border border-wedding-gold/10'
-                                : 'bg-white border-wedding-navy/5 text-wedding-navy rounded-tl-none shadow-wedding-navy/5'
-                                }`}>
-                                <div className="leading-relaxed font-medium">{msg.content}</div>
-                                <div className={`text-[9px] mt-2 font-bold uppercase tracking-widest ${msg.direction === 'FROM_SHADCHAN' ? 'text-wedding-gold/60' : 'text-wedding-navy/40'}`}>
+                            <div key={msg.id} className={`flex items-end gap-3 mb-6 ${msg.direction === 'FROM_SHADCHAN' ? 'justify-end' : 'justify-start'}`}>
+                              {/* Avatar for Candidate */}
+                              {msg.direction !== 'FROM_SHADCHAN' && (
+                                <div className="w-8 h-8 rounded-full bg-white border border-wedding-navy/5 flex items-center justify-center text-xs font-serif font-bold text-wedding-navy shadow-sm shrink-0 mb-1 ring-2 ring-white">
+                                  {chatProfile?.imageUrl ? (
+                                    <img src={chatProfile.imageUrl} alt={chatProfile.firstName} className="w-full h-full rounded-full object-cover" />
+                                  ) : chatProfile?.firstName.charAt(0)}
+                                </div>
+                              )}
+
+                              <div className={`max-w-[70%] lg:max-w-[60%] group relative`}>
+                                <div className={`px-5 py-3.5 text-sm shadow-sm transition-all ${msg.direction === 'FROM_SHADCHAN'
+                                  ? 'bg-wedding-navy text-white rounded-2xl rounded-tr-sm shadow-wedding-navy/10'
+                                  : 'bg-white text-wedding-navy border border-wedding-navy/5 rounded-2xl rounded-tl-sm shadow-wedding-navy/5'
+                                  }`}>
+                                  <div className="leading-relaxed whitespace-pre-wrap font-medium">{msg.content}</div>
+                                </div>
+                                <div className={`text-[9px] mt-1.5 font-bold uppercase tracking-widest opacity-40 px-1 ${msg.direction === 'FROM_SHADCHAN' ? 'text-right' : 'text-left'}`}>
                                   {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                 </div>
                               </div>
@@ -2680,8 +2814,8 @@ const ShadchanDashboard: React.FC<ShadchanDashboardProps> = ({ profiles, onUpdat
                             type="text"
                             value={newMessageText}
                             onChange={(e) => setNewMessageText(e.target.value)}
-                            placeholder="ÉCRIVEZ VOTRE MESSAGE..."
-                            className="flex-1 px-6 py-4 bg-wedding-navy/5 border border-wedding-navy/5 rounded-2xl focus:outline-none focus:bg-white focus:border-wedding-gold/30 transition-all font-bold text-xs uppercase tracking-widest text-wedding-navy placeholder:text-wedding-navy/20 shadow-inner"
+                            placeholder="Écrivez votre message..."
+                            className="flex-1 px-6 py-4 bg-wedding-navy/5 border border-wedding-navy/5 rounded-2xl focus:outline-none focus:bg-white focus:border-wedding-gold/30 transition-all font-medium text-sm text-wedding-navy placeholder:text-wedding-navy/40 shadow-inner"
                             onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
                           />
                           <button onClick={handleSendMessage} className="p-4 bg-wedding-navy text-white rounded-2xl hover:bg-wedding-navy/90 transition-all shadow-xl shadow-wedding-navy/20 border border-wedding-gold/20 active:scale-95">
@@ -2705,94 +2839,7 @@ const ShadchanDashboard: React.FC<ShadchanDashboardProps> = ({ profiles, onUpdat
         </div>
       </main >
 
-      {/* CV Export Mode Overlay */}
-      {isCvMode && selectedProfile && (
-        <div className="fixed inset-0 z-[100] bg-white overflow-y-auto p-8 md:p-12 print:p-0 animate-in fade-in duration-300">
-          <div className="max-w-4xl mx-auto">
-            <div className="flex justify-between items-center mb-12 print:hidden">
-              <button
-                onClick={() => setIsCvMode(false)}
-                className="flex items-center gap-2 text-wedding-navy hover:text-wedding-gold transition-colors font-bold uppercase tracking-widest text-[10px]"
-              >
-                <ChevronLeft className="w-4 h-4" /> Retour au Dashboard
-              </button>
-              <div className="flex gap-4">
-                <button
-                  onClick={() => window.print()}
-                  className="px-8 py-3 bg-wedding-navy text-wedding-gold rounded-xl font-bold uppercase tracking-widest text-[10px] shadow-2xl hover:bg-opacity-90 active:scale-95 transition-all flex items-center gap-2"
-                >
-                  <Printer className="w-4 h-4" />
-                  Imprimer / Exporter PDF
-                </button>
-              </div>
-            </div>
 
-            <div className="bg-white border border-wedding-navy/10 p-12 md:p-20 rounded-[3rem] shadow-2xl print:shadow-none print:border-none print:p-0 relative overflow-hidden">
-              {/* Decorative background for CV */}
-              <div className="absolute top-0 right-0 p-20 opacity-[0.03] rotate-12">
-                <Sparkles className="w-96 h-96 text-wedding-gold" />
-              </div>
-
-              <div className="relative z-10">
-                <div className="flex flex-col md:flex-row gap-12 items-start mb-16 border-b border-wedding-navy/5 pb-16">
-                  <img src={selectedProfile.imageUrl} alt="" className="w-48 h-48 rounded-[2.5rem] object-cover shadow-2xl border-4 border-white" />
-                  <div className="flex-1">
-                    <h1 className="text-5xl font-serif font-bold text-wedding-navy mb-4">{selectedProfile.firstName} {selectedProfile.lastName}</h1>
-                    <div className="flex flex-wrap gap-6">
-                      <span className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-wedding-navy/60"><MapPin className="w-4 h-4 text-wedding-gold" /> {selectedProfile.city}</span>
-                      <span className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-wedding-navy/60"><Calendar className="w-4 h-4 text-wedding-gold" /> {selectedProfile.age} ans</span>
-                      <span className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-wedding-navy/60"><Briefcase className="w-4 h-4 text-wedding-gold" /> {selectedProfile.occupation}</span>
-                    </div>
-                    <div className="mt-8 inline-block px-6 py-2 rounded-full bg-wedding-navy text-wedding-gold text-[10px] font-bold uppercase tracking-[0.2em]">
-                      {selectedProfile.religiousLevel}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-16">
-                  <div className="space-y-12">
-                    <section>
-                      <h2 className="text-sm font-bold uppercase tracking-[0.3em] text-wedding-gold mb-6 flex items-center gap-3">
-                        <User className="w-4 h-4" /> À PROPOS
-                      </h2>
-                      <p className="text-wedding-navy/80 leading-relaxed font-medium">{selectedProfile.aboutMe || "Aucune description fournie."}</p>
-                    </section>
-
-                    <section>
-                      <h2 className="text-sm font-bold uppercase tracking-[0.3em] text-wedding-gold mb-6 flex items-center gap-3">
-                        <Heart className="w-4 h-4" /> RECHERCHE
-                      </h2>
-                      <p className="text-wedding-navy/80 leading-relaxed font-medium">{selectedProfile.lookingFor || "Information non renseignée."}</p>
-                    </section>
-                  </div>
-
-                  <div className="space-y-12">
-                    <section>
-                      <h2 className="text-sm font-bold uppercase tracking-[0.3em] text-wedding-gold mb-6 flex items-center gap-3">
-                        <GraduationCap className="w-4 h-4" /> PARCOURS & ÉTUDES
-                      </h2>
-                      <p className="text-wedding-navy/80 leading-relaxed font-medium">{selectedProfile.educationalPath || "Détails non renseignés."}</p>
-                    </section>
-
-                    <section>
-                      <h2 className="text-sm font-bold uppercase tracking-[0.3em] text-wedding-gold mb-6 flex items-center gap-3">
-                        <Users className="w-4 h-4" /> FAMILLE & VALEURS
-                      </h2>
-                      <p className="text-wedding-navy/80 leading-relaxed font-medium">{selectedProfile.familyBackground || "Informations familiales non renseignées."}</p>
-                    </section>
-
-                    <section className="pt-8 border-t border-wedding-navy/5">
-                      <div className="text-[10px] font-bold text-wedding-navy/40 uppercase tracking-widest mb-4">Contact Shadchan</div>
-                      <p className="text-sm font-bold text-wedding-navy">Binyan Adei Ad - Service Matchmaking</p>
-                      <p className="text-xs text-wedding-gold font-bold mt-1">Ref: {selectedProfile.id.slice(0, 8).toUpperCase()}</p>
-                    </section>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div >
   );
 };

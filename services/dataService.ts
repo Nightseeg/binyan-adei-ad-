@@ -70,7 +70,17 @@ const mapProfileFromDB = (p: any): Profile => ({
     searchPhoneDetails: p.search_phone_details,
     searchTraitsDetails: p.search_traits_details,
     searchPrioritiesDetails: p.search_priorities_details,
+    parentsOrigin: p.parents_origin,
+    bodyType: p.body_type,
+    headCoveringPreference: p.head_covering_preference,
     lastActiveAt: p.last_active_at,
+
+    nusach: p.nusach,
+    searchNusach: p.search_nusach,
+    searchSocial: p.search_social,
+    lookingForJob: p.looking_for_job,
+    lookingForHashkafa: p.looking_for_hashkafa,
+    lookingForYiratShamayim: p.looking_for_yirat_shamayim,
 });
 
 const mapProfileToDB = (p: Partial<Profile>) => {
@@ -138,7 +148,17 @@ const mapProfileToDB = (p: Partial<Profile>) => {
     if (p.searchPhoneDetails) dbProfile.search_phone_details = p.searchPhoneDetails;
     if (p.searchTraitsDetails) dbProfile.search_traits_details = p.searchTraitsDetails;
     if (p.searchPrioritiesDetails) dbProfile.search_priorities_details = p.searchPrioritiesDetails;
+    if (p.parentsOrigin) dbProfile.parents_origin = p.parentsOrigin;
+    if (p.bodyType) dbProfile.body_type = p.bodyType;
+    if (p.headCoveringPreference) dbProfile.head_covering_preference = p.headCoveringPreference;
     if (p.lastActiveAt) dbProfile.last_active_at = p.lastActiveAt;
+
+    if (p.nusach) dbProfile.nusach = p.nusach;
+    if (p.searchNusach) dbProfile.search_nusach = p.searchNusach;
+    if (p.searchSocial) dbProfile.search_social = p.searchSocial;
+    if (p.lookingForJob) dbProfile.looking_for_job = p.lookingForJob;
+    if (p.lookingForHashkafa) dbProfile.looking_for_hashkafa = p.lookingForHashkafa;
+    if (p.lookingForYiratShamayim) dbProfile.looking_for_yirat_shamayim = p.lookingForYiratShamayim;
     
     // Remove camelCase keys to be clean (optional but good)
     delete dbProfile.firstName;
@@ -204,7 +224,17 @@ const mapProfileToDB = (p: Partial<Profile>) => {
     delete dbProfile.searchPhoneDetails;
     delete dbProfile.searchTraitsDetails;
     delete dbProfile.searchPrioritiesDetails;
+    delete dbProfile.parentsOrigin;
+    delete dbProfile.bodyType;
+    delete dbProfile.headCoveringPreference;
     delete dbProfile.lastActiveAt;
+
+    delete dbProfile.nusach;
+    delete dbProfile.searchNusach;
+    delete dbProfile.searchSocial;
+    delete dbProfile.lookingForJob;
+    delete dbProfile.lookingForHashkafa;
+    delete dbProfile.lookingForYiratShamayim;
 
     return dbProfile;
 };
@@ -310,6 +340,10 @@ export const api = {
         const { error } = await supabase.from('matches').upsert(dbMatch);
         if (error) throw error;
     },
+    deleteMatch: async (id: string) => {
+        const { error } = await supabase.from('matches').delete().eq('id', id);
+        if (error) throw error;
+    },
     
     // Tasks
     getTasks: async () => {
@@ -318,7 +352,7 @@ export const api = {
         return data.map((t: any) => ({ ...t, createdAt: t.created_at }));
     },
     createTask: async (task: Task) => {
-        console.log("api.createTask: Sending task to DB", task);
+
         const dbTask = {
             id: task.id,
             text: task.text,
@@ -330,7 +364,7 @@ export const api = {
             console.error("api.createTask: Supabase error", error);
             throw error;
         }
-        console.log("api.createTask: Insert successful");
+
     },
     updateTask: async (task: Task) => {
         const dbTask = {
@@ -348,7 +382,7 @@ export const api = {
     },
 
     // Shadchan Profile
-    getShadchanProfile: async (id: number = 1) => {
+    getShadchanProfile: async (id: number) => {
         const { data, error } = await supabase.from('shadchan_profile').select('*').eq('id', id).single();
         if (error) {
              console.warn(`Error fetching shadchan profile ${id}:`, error);
@@ -357,8 +391,8 @@ export const api = {
         return data;
     },
     updateShadchanProfile: async (profile: any) => {
-        // If id is provided use it, otherwise default to 1 for backward compat
-        const { error } = await supabase.from('shadchan_profile').upsert({ ...profile, id: profile.id || 1 });
+        if (!profile.id) throw new Error("Profile ID is required for update");
+        const { error } = await supabase.from('shadchan_profile').upsert(profile);
         if (error) throw error;
     },
     getShadchans: async () => {
@@ -367,6 +401,11 @@ export const api = {
              console.warn("Error fetching shadchans:", error);
              return [];
         }
+        return data;
+    },
+    getShadchanByEmail: async (email: string) => {
+        const { data, error } = await supabase.from('shadchan_profile').select('*').eq('email', email).single();
+        if (error) return null;
         return data;
     },
 
@@ -471,9 +510,11 @@ export const api = {
             .from('messages')
             .update({ is_read: true })
             .eq('profile_id', profileId)
-            .eq('direction', 'FROM_CANDIDATE');
-    if (error) throw error;
-  },
+            .eq('direction', 'FROM_CANDIDATE')
+            .eq('is_read', false);
+        if (error) throw error;
+    },
+
   getProfileIdsWithMessages: async () => {
     const { data, error } = await supabase
       .from('messages')

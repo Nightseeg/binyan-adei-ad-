@@ -52,15 +52,15 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSave, onCancel, i
   const validateStep = (step: number): boolean => {
     switch (step) {
       case 1:
-        return !!(formData.lastName && formData.firstName && formData.birthDate && formData.contactPhone && isValidPhone(formData.contactPhone) && formData.height && formData.skinColor && formData.eyeColor && formData.hairColor);
+        return !!(formData.lastName && formData.firstName && formData.birthDate && formData.contactPhone && isValidPhone(formData.contactPhone) && formData.height && formData.skinColor && formData.eyeColor && formData.hairColor && formData.bodyType);
       case 2:
-        return !!(formData.fatherName && formData.motherName && formData.fatherPhone && formData.motherPhone && isValidPhone(formData.fatherPhone!) && isValidPhone(formData.motherPhone!));
+        return !!(formData.fatherName && formData.motherName && formData.fatherPhone && formData.motherPhone && isValidPhone(formData.fatherPhone!) && isValidPhone(formData.motherPhone!) && formData.parentsOrigin);
       case 3:
         return !!(formData.primarySchool && formData.middleSchool && formData.highSchool && formData.yeshivaKtana && formData.yeshivaGdola && formData.currentOccupation);
       case 4:
         return !!(formData.ambitionCareer && formData.ambitionLocation && (formData.ambitions || !formData.ambitionCareer) && (formData.community || !formData.ambitionLocation));
       case 5:
-        return !!(formData.selfDescription && formData.isSmoking && formData.personalTraits && formData.personalClothing && formData.personalPhone);
+        return true; // All fields are optional for this step
       case 6:
         return !!(formData.searchFamily && formData.searchClothing && formData.searchPhone && formData.searchTraits && formData.searchPriorities && formData.lookingFor);
       case 7:
@@ -277,6 +277,16 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSave, onCancel, i
                     </div>
                   </div>
 
+                  <div className="bg-wedding-navy/5 p-4 rounded-xl border border-wedding-navy/10 flex gap-4 items-start">
+                    <div className="p-2 bg-white rounded-lg shadow-sm">
+                      <Lock className="w-4 h-4 text-wedding-navy" />
+                    </div>
+                    <p className="text-sm text-wedding-navy/80 leading-relaxed font-medium">
+                      <strong className="block text-wedding-navy mb-0.5 text-xs uppercase tracking-wider">Confidentialité Maximale</strong>
+                      Seul le Shadchan ou la Shadchanit qui s'occupe de votre dossier pourra voir ces informations. Elles restent strictement confidentielles.
+                    </p>
+                  </div>
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div>
                       <label className={labelClass}>Nom *</label>
@@ -307,6 +317,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSave, onCancel, i
                         <input type="text" name="contactPhone" value={formData.contactPhone || ''} onChange={handleChange} className={`${inputClass} pl-12 md:pl-12`} placeholder="06 XX XX XX XX" />
                       </div>
                     </div>
+
                     <div className="md:col-span-2">
                       <label className={labelClass}>Ville de résidence *</label>
                       <div className="relative">
@@ -318,6 +329,17 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSave, onCancel, i
                     <div className="md:col-span-2 border-t border-wedding-navy/5 pt-8 mt-4">
                       <h4 className="text-[10px] font-bold text-wedding-navy/30 uppercase tracking-[0.2em] mb-6">Description Physique</h4>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div>
+                          <label className={labelClass}>Morphologie *</label>
+                          <select name="bodyType" value={formData.bodyType || ''} onChange={handleChange} className={inputClass} required>
+                            <option value="">Sélectionner...</option>
+                            <option value="Mince">Mince</option>
+                            <option value="Normale">Normale</option>
+                            <option value="Sportive">Sportive</option>
+                            <option value="Ronde">Ronde</option>
+                            <option value="Forte">Forte</option>
+                          </select>
+                        </div>
                         <div>
                           <label className={labelClass}>Taille (cm) *</label>
                           <input type="text" name="height" value={formData.height || ''} onChange={handleChange} className={inputClass} placeholder="Ex: 175" />
@@ -376,6 +398,32 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSave, onCancel, i
                         <input type="text" name="motherPhone" value={formData.motherPhone || ''} onChange={handleChange} className={inputClass} />
                       </div>
                     </div>
+
+                    <div className="md:col-span-2 space-y-6 pt-4 border-t border-wedding-navy/5">
+                      <h4 className="text-[10px] font-bold text-wedding-navy/30 uppercase tracking-[0.2em] border-b border-wedding-navy/5 pb-2">Origines</h4>
+                      <div>
+                        <label className={labelClass}>Origine des parents *</label>
+                        <input
+                          type="text"
+                          name="parentsOrigin"
+                          value={formData.parentsOrigin || ''}
+                          onChange={handleChange}
+                          className={inputClass}
+                          placeholder="Ex: Maroc, Pologne, Tunisie, etc."
+                        />
+                      </div>
+                      <div>
+                        <label className={labelClass}>Rite / Noussa'h *</label>
+                        <select name="nusach" value={formData.nusach || ''} onChange={handleChange} className={inputClass}>
+                          <option value="">Sélectionner...</option>
+                          <option value="Ashkenaze">Ashkenaze</option>
+                          <option value="Sefarade">Sefarade</option>
+                          <option value="Edot Hamizrah">Edot Hamizrah</option>
+                          <option value="Hassidique">Hassidique</option>
+                          <option value="Autre">Autre</option>
+                        </select>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
@@ -407,21 +455,37 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSave, onCancel, i
                         <input type="text" name="highSchool" value={formData.highSchool || ''} onChange={handleChange} className={inputClass} placeholder="Nom du lycée" />
                       </div>
                       <div>
-                        <label className={labelClass}>Yéchiva Ktana / Séminaire *</label>
-                        <input type="text" name="yeshivaKtana" value={formData.yeshivaKtana || ''} onChange={handleChange} className={inputClass} />
+                        <label className={labelClass}>{formData.gender === Gender.MALE ? 'Yéchiva Ktana' : 'Séminaire'} *</label>
+                        <div className="flex gap-2">
+                             <input type="text" name="yeshivaKtana" value={formData.yeshivaKtana || ''} onChange={handleChange} className={inputClass} placeholder="Nom ou 'Peu importe'" />
+                        </div>
                       </div>
                       <div>
-                        <label className={labelClass}>Yéchiva Gdola / Études Supérieures *</label>
-                        <input type="text" name="yeshivaGdola" value={formData.yeshivaGdola || ''} onChange={handleChange} className={inputClass} />
+                        <label className={labelClass}>{formData.gender === Gender.MALE ? 'Yéchiva Gdola' : 'Post-Séminaire / Études'} *</label>
+                        <div className="flex gap-2">
+                            <input type="text" name="yeshivaGdola" value={formData.yeshivaGdola || ''} onChange={handleChange} className={inputClass} placeholder="Nom ou 'Peu importe'" />
+                        </div>
                       </div>
                       <div>
                         <label className={labelClass}>Activité Actuelle *</label>
                         <select name="currentOccupation" value={formData.currentOccupation || ''} onChange={handleChange} className={inputClass}>
                           <option value="">Sélectionner...</option>
-                          <option value="Limoud">Limoud (Pleine journée)</option>
-                          <option value="Limoud & Travail">Limoud & Travail</option>
-                          <option value="Travail">Travail (Pleine journée)</option>
-                          <option value="Études">Études</option>
+                          {formData.gender === Gender.MALE ? (
+                            <>
+                              <option value="Limoud">Limoud (Pleine journée)</option>
+                              <option value="Limoud & Travail">Limoud & Travail</option>
+                              <option value="Travail">Travail (Pleine journée)</option>
+                              <option value="Études">Études</option>
+                            </>
+                          ) : (
+                            <>
+                              <option value="Études">Études (Pleine journée)</option>
+                              <option value="Travail">Travail (Pleine journée)</option>
+                              <option value="Études & Travail">Études & Travail</option>
+                              <option value="Recherche d'emploi">Recherche d'emploi</option>
+                              <option value="Foyer">Foyer</option>
+                            </>
+                          )}
                         </select>
                       </div>
                       <div className="md:col-span-2">
@@ -463,10 +527,36 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSave, onCancel, i
                   </div>
 
                   <div className="space-y-12">
+                    <div>
+                      <label className={labelClass}>Kehila Fréquentée *</label>
+                      <textarea
+                        name="community"
+                        value={formData.community || ''}
+                        onChange={handleChange}
+                        rows={2}
+                        className={areaClass}
+                        placeholder="Ex: Kehila ..., Ville, Rav ..."
+                      />
+                    </div>
+
+                    <div>
+                        <label className={labelClass}>Niveau Religieux *</label>
+                        <select name="religiousLevel" value={formData.religiousLevel || ''} onChange={handleChange} className={inputClass}>
+                          <option value={ReligiousLevel.YESHIVISH}>Yeshivish</option>
+                          <option value={ReligiousLevel.MODERN_ORTHODOX}>Moderne Orthodoxe</option>
+                          <option value={ReligiousLevel.CHASSIDISH}>Hassidique</option>
+                          <option value={ReligiousLevel.DATI_LEUMI}>Dati Leumi</option>
+                          <option value={ReligiousLevel.TRADITIONAL}>Traditionaliste</option>
+                          <option value={ReligiousLevel.BAAL_TESHUVA}>Baal Teshuva</option>
+                        </select>
+                    </div>
+
                     <QCMGroup
-                      label="Projet de vie / Carrière *"
+                      label={`Projet de vie / Carrière ${formData.gender === Gender.MALE ? '(Pour vous)' : '(Ce que vous recherchez)'} *`}
                       name="ambitionCareer"
-                      options={["Avrekh (Plein temps)", "Travail (Plein temps)", "Mi-temps", "Avrekh les premières années"]}
+                      options={formData.gender === Gender.MALE
+                        ? ["Avrekh (Plein temps)", "Travail (Pleine temps)", "Mi-temps", "Avrekh les premières années"]
+                        : ["Mari Avrekh", "Mari qui travaille", "Mari qui étudie et travaille", "Mari Avrekh au début"]}
                     />
 
                     <QCMGroup
@@ -485,18 +575,6 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSave, onCancel, i
                         rows={4}
                         className={areaClass}
                         placeholder="Détaillez vos projets ici..."
-                      />
-                    </div>
-
-                    <div>
-                      <label className={labelClass}>Kehila Fréquentée *</label>
-                      <textarea
-                        name="community"
-                        value={formData.community || ''}
-                        onChange={handleChange}
-                        rows={2}
-                        className={areaClass}
-                        placeholder="Ex: Kehila ..., Ville, Rav ..."
                       />
                     </div>
                   </div>
@@ -518,7 +596,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSave, onCancel, i
                   <div className="space-y-12">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
                       <QCMGroup
-                        label="Est-ce que tu fumes ? *"
+                        label="Est-ce que tu fumes ?"
                         name="isSmoking"
                         options={["Non", "Oui"]}
                         multi={false}
@@ -531,9 +609,9 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSave, onCancel, i
 
                     <div className="space-y-6">
                       <QCMGroup
-                        label="Caractère & Personnalité *"
+                        label="Caractère & Personnalité"
                         name="personalTraits"
-                        options={["Sociable", "Réservé", "Drôle", "Calme", "Ambitieux", "Studieux", "Énergique"]}
+                        options={["Sociable", "Réservé", "Drôle", "Calme", "Ambitieux", "Studieux", "Énergique", "Intellectuelle", "Sérieux"]}
                       />
                       <textarea
                         name="personalTraitsDetails"
@@ -547,9 +625,11 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSave, onCancel, i
 
                     <div className="space-y-6">
                       <QCMGroup
-                        label="Style vestimentaire (Ben Azmanim) *"
+                        label="Style vestimentaire (Ben Azmanim / Quotidien)"
                         name="personalClothing"
-                        options={["Chemise", "Kova 'Halifa", "Style Détente"]}
+                        options={formData.gender === Gender.MALE
+                          ? ["Chemise", "Kova 'Halifa", "Style Détente", "Moderne"]
+                          : ["Tzniout Classique", "Tzniout Moderne", "Strict", "Décontracté"]}
                       />
                       <textarea
                         name="personalClothingDetails"
@@ -561,9 +641,20 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSave, onCancel, i
                       />
                     </div>
 
+                    {formData.gender === Gender.FEMALE && (
+                      <div className="space-y-6">
+                        <QCMGroup
+                          label="Couvre-Chef (Après mariage)"
+                          name="headCoveringPreference"
+                          options={["Foulard", "Perruque", "Foulard & Perruque", "Ne sait pas encore"]}
+                          multi={false}
+                        />
+                      </div>
+                    )}
+
                     <div className="space-y-6">
                       <QCMGroup
-                        label="Type de téléphone *"
+                        label="Type de téléphone"
                         name="personalPhone"
                         options={["Neuf touches", "Xiaomi", "Smartphone", "Smartphone filtré"]}
                         multi={false}
@@ -579,7 +670,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSave, onCancel, i
                     </div>
 
                     <div>
-                      <label className={labelClass}>Quelques mots sur vous *</label>
+                      <label className={labelClass}>Quelques mots sur vous</label>
                       <textarea
                         name="selfDescription"
                         value={formData.selfDescription || ''}
@@ -610,7 +701,9 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSave, onCancel, i
                       <QCMGroup
                         label="Milieu familial recherché *"
                         name="searchFamily"
-                        options={["Fille de maison pratiquante", "Milieu Yéchiva", "Ba’alat téchouva"]}
+                        options={formData.gender === Gender.MALE
+                          ? ["Fille de maison pratiquante", "Milieu Yéchiva", "Ba’alat téchouva", "Torani"]
+                          : ["Famille Torah", "Famille Moderne", "Baal Téchouva", "Ouverte"]}
                       />
                       <textarea
                         name="searchFamilyDetails"
@@ -623,10 +716,42 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSave, onCancel, i
                     </div>
 
                     <div className="space-y-6">
+                         <label className={labelClass}>Origine / Rite recherché</label>
+                         <QCMGroup
+                            label="Rite / Noussa'h"
+                            name="searchNusach"
+                            options={["Ashkenaze", "Sefarade", "Edot Hamizrah", "Hassidique", "Peu importe"]}
+                         />
+                    </div>
+
+                    {formData.gender === Gender.MALE && (
+                        <div className="space-y-8 border-t border-wedding-navy/5 pt-6">
+                            <h4 className="text-[10px] font-bold text-wedding-navy/30 uppercase tracking-[0.2em]">Critères Spécifiques (Pour Elle)</h4>
+                            
+                            <div>
+                                <label className={labelClass}>Métier souhaité</label>
+                                <input type="text" name="lookingForJob" value={formData.lookingForJob || ''} onChange={handleChange} className={inputClass} placeholder="Ex: Enseignante, Libérale,..." />
+                            </div>
+                            <div>
+                                <label className={labelClass}>Hachkafot souhaitées</label>
+                                <input type="text" name="lookingForHashkafa" value={formData.lookingForHashkafa || ''} onChange={handleChange} className={inputClass} placeholder="Ex: Ouverte, Torani,..." />
+                            </div>
+                             <div>
+                                <label className={labelClass}>Niveau de Yirat Shamayim</label>
+                                <input type="text" name="lookingForYiratShamayim" value={formData.lookingForYiratShamayim || ''} onChange={handleChange} className={inputClass} placeholder="Ex: Très pointilleuse, ..." />
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="space-y-6">
                       <QCMGroup
-                        label="Style vestimentaire recherché *"
+                        label="Style vestimentaire recherché (Pour l'autre) *"
                         name="searchClothing"
-                        options={["Classique", "Strict", "Moderne"]}
+                        options={formData.gender === Gender.MALE
+                          // Male searches for female style
+                          ? ["Tzniout Classique", "Tzniout Moderne", "Strict", "Peu importe"]
+                          // Female searches for male style
+                          : ["Kova 'Halifa (Toujours)", "Chemise (Shabbat)", "Kippa Serouga", "Peu importe"]}
                       />
                       <textarea
                         name="searchClothingDetails"
@@ -640,7 +765,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSave, onCancel, i
 
                     <div className="space-y-6">
                       <QCMGroup
-                        label="Type de téléphone (Pour elle) *"
+                        label={`Type de téléphone (Souhaité pour ${formData.gender === Gender.MALE ? 'elle' : 'lui'}) *`}
                         name="searchPhone"
                         options={["Smartphone", "Neuf touches", "À discuter"]}
                       />
@@ -655,11 +780,21 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSave, onCancel, i
                     </div>
 
                     <div className="space-y-6">
-                      <QCMGroup
-                        label="Caractère & Personnalité recherchés *"
-                        name="searchTraits"
-                        options={["Douce", "Joyeuse", "Sérieuse", "Simple", "Dynamique", "Organisée", "Calme", "Leader"]}
-                      />
+                       <QCMGroup
+                         label={`WhatsApp / Réseaux Sociaux (Possédé par ${formData.gender === Gender.MALE ? 'elle' : 'lui'}) *`}
+                         name="searchSocial"
+                         options={["Avec", "Sans", "Peu importe"]}
+                       />
+                    </div>
+
+                    <div className="space-y-6">
+                       <QCMGroup
+                         label="Caractère & Personnalité recherchés *"
+                         name="searchTraits"
+                         options={formData.gender === Gender.MALE
+                           ? ["Douce", "Joyeuse", "Sérieuse", "Simple", "Dynamique", "Organisée", "Calme", "Leader", "Intellectuelle", "Drôle", "Peu importe"]
+                           : ["Doux", "Joyeux", "Sérieux", "Simple", "Dynamique", "Organisé", "Calme", "Leader", "Intellectuel", "Drôle", "Peu importe"]}
+                       />
                       <textarea
                         name="searchTraitsDetails"
                         value={formData.searchTraitsDetails || ''}
@@ -674,7 +809,9 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSave, onCancel, i
                       <QCMGroup
                         label="Ce qui vous tient le plus à cœur *"
                         name="searchPriorities"
-                        options={["Physique", "Tsniout", "Téléphone Cacher", "Caractère"]}
+                        options={formData.gender === Gender.MALE
+                          ? ["Physique", "Tsniout", "Midot", "Caractère"]
+                          : ["Physique", "Étude de la Torah", "Middot", "Caractère"]}
                       />
                       <textarea
                         name="searchPrioritiesDetails"

@@ -21,6 +21,11 @@ const App: React.FC = () => {
     return (saved as any) || 'home';
   });
 
+  const [currentShadchan, setCurrentShadchan] = useState<any>(() => {
+    const saved = localStorage.getItem('currentShadchan');
+    return saved ? JSON.parse(saved) : null;
+  });
+
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [editingProfile, setEditingProfile] = useState<Profile | undefined>(undefined);
 
@@ -141,6 +146,15 @@ const App: React.FC = () => {
       if (!confirmAdd) return;
     }
 
+    // Email Uniqueness Check
+    if (newProfile.email) {
+      const emailExists = profiles.find(p => p.email?.toLowerCase().trim() === newProfile.email?.toLowerCase().trim());
+      if (emailExists) {
+        alert("Un compte existe déjà avec cette adresse email. Veuillez vous connecter ou utiliser une autre adresse.");
+        return;
+      }
+    }
+
     try {
       const createdProfile = await api.createProfile(newProfile);
       setProfiles([...profiles, createdProfile]);
@@ -168,7 +182,6 @@ const App: React.FC = () => {
     }
   };
 
-  const [pin, setPin] = useState('');
   // isAuthenticated state moved to top
 
   const handleDeleteProfiles = async (idsToDelete: string[]) => {
@@ -188,20 +201,14 @@ const App: React.FC = () => {
     setCurrentUser(undefined);
     localStorage.removeItem('isAuthenticated');
     localStorage.removeItem('currentUserId');
+    localStorage.removeItem('currentShadchan');
+    setCurrentShadchan(null);
     localStorage.removeItem('shadchan_key');
     localStorage.removeItem('access_code');
     setView('home');
   };
 
-  const handlePinSubmit = () => {
-    if (pin === '1212') {
-      setIsAuthenticated(true);
-      setView('dashboard');
-      // Optionally save session
-    } else {
-      alert("Code PIN incorrect");
-    }
-  };
+
 
   return (
     <ToastProvider>
@@ -210,11 +217,12 @@ const App: React.FC = () => {
         <div
           className="fixed inset-0 z-[-1] bg-cover bg-center bg-no-repeat"
           style={{
-            backgroundImage: "url('https://images.unsplash.com/photo-1519741497674-611481863552?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80')",
+            backgroundImage: "url('https://images.unsplash.com/photo-1511285560982-1356c11d4606?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80')",
           }}
         />
         {/* Elegant White Overlay with Gradient for Depth */}
-        <div className="fixed inset-0 z-[-1] bg-gradient-to-br from-white/95 via-white/85 to-wedding-rose/20 backdrop-blur-[1px]" />
+        {/* Elegant White Overlay with Gradient for Depth */}
+        <div className="fixed inset-0 z-[-1] bg-gradient-to-br from-white/30 via-white/10 to-transparent backdrop-blur-[0px]" />
 
         <div className="flex-grow flex flex-col text-wedding-navy">
           {view !== 'dashboard' && view !== 'candidate-portal' && view !== 'register' && view !== 'candidate-login' && (
@@ -222,7 +230,7 @@ const App: React.FC = () => {
           )}
 
           {/* Main Content */}
-          <main className={`flex-grow overflow-x-hidden ${['home', 'shadchans'].includes(view) ? 'pt-20' : ''}`}>
+          <main className={`flex-grow overflow-x-hidden ${['home', 'shadchans', 'registration-success'].includes(view) ? 'pt-20' : ''}`}>
 
             <AnimatePresence mode="wait">
               {view === 'home' && (
@@ -348,8 +356,12 @@ const App: React.FC = () => {
                     exit={{ opacity: 0 }}
                   >
                     <LoginPage
-                      onLoginSuccess={() => {
+                      onLoginSuccess={(shadchanProfile) => {
                         setIsAuthenticated(true);
+                        if (shadchanProfile) {
+                          setCurrentShadchan(shadchanProfile);
+                          localStorage.setItem('currentShadchan', JSON.stringify(shadchanProfile));
+                        }
                         setView('dashboard');
                       }}
                       onCancel={() => setView('home')}
@@ -369,6 +381,11 @@ const App: React.FC = () => {
                         onUpdateProfile={handleUpdateProfile}
                         onDeleteProfiles={handleDeleteProfiles}
                         onLogout={handleLogout}
+                        shadchanProfile={currentShadchan}
+                        onUpdateShadchan={(updated) => {
+                          setCurrentShadchan(updated);
+                          localStorage.setItem('currentShadchan', JSON.stringify(updated));
+                        }}
                       />
                     </div>
                   </motion.div>

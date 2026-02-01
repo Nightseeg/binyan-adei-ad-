@@ -90,7 +90,18 @@ export interface Profile {
   searchPhoneDetails?: string;
   searchTraitsDetails?: string;
   searchPrioritiesDetails?: string;
+  parentsOrigin?: string;
+  bodyType?: string;
+  headCoveringPreference?: string;
   lastActiveAt?: number;
+  // New fields
+
+  nusach?: string; // Ashkenaze, Sefarade, etc.
+  searchNusach?: string; // Preference
+  searchSocial?: string; // "Avec", "Sans", "Peu importe"
+  lookingForJob?: string; // For boys asking about girls
+  lookingForHashkafa?: string; // For boys asking about girls
+  lookingForYiratShamayim?: string; // For boys asking about girls
 }
 
 export interface Reference {
@@ -113,9 +124,7 @@ export interface MatchSuggestion {
   reasoning: string;
 }
 
-export interface AIResponse {
-  suggestions: MatchSuggestion[];
-}
+
 
 export interface MatchingCriteria {
   minAge?: number;
@@ -154,4 +163,5 @@ export interface Task {
   text: string;
   completed: boolean;
   createdAt: number;
+  shadchan_id?: number;
 }
