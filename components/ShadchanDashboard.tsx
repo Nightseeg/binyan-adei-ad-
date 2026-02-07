@@ -1916,11 +1916,17 @@ const ShadchanDashboard: React.FC<ShadchanDashboardProps> = ({ profiles: allProf
                       {/* Header Profil */}
                       <div className="flex flex-col md:flex-row gap-10 items-start mb-12">
                         <div className="relative group shrink-0">
-                          <img
-                            src={selectedProfile.imageUrl}
-                            alt="Profile"
-                            className="w-40 h-40 rounded-3xl object-cover shadow-2xl border-4 border-white ring-1 ring-wedding-navy/5 bg-wedding-navy/5"
-                          />
+                          {selectedProfile.imageUrl ? (
+                            <img
+                              src={selectedProfile.imageUrl}
+                              alt="Profile"
+                              className="w-40 h-40 rounded-3xl object-cover shadow-2xl border-4 border-white ring-1 ring-wedding-navy/5 bg-wedding-navy/5"
+                            />
+                          ) : (
+                            <div className="w-40 h-40 rounded-3xl flex items-center justify-center bg-wedding-navy text-wedding-gold shadow-2xl border-4 border-white ring-1 ring-wedding-navy/5">
+                              <span className="font-serif font-bold text-6xl">{selectedProfile.firstName.charAt(0)}</span>
+                            </div>
+                          )}
                           <div className="absolute -bottom-3 -right-3 p-3 bg-wedding-gold text-wedding-navy rounded-2xl shadow-xl ring-4 ring-white">
                             <Heart className="w-5 h-5 fill-current" />
                           </div>

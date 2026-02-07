@@ -30,6 +30,28 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSave, onCancel, i
     photos: [],
     references: []
   });
+  const [isUploading, setIsUploading] = useState(false);
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert("L'image est trop volumineuse (max 5Mo)");
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      const url = await api.uploadFile('profiles', file);
+      setFormData(prev => ({ ...prev, imageUrl: url }));
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      alert("Erreur lors du téléchargement de l'image");
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   const isValidPhone = (phone: string) => /^[\d\s.+()-]{8,20}$/.test(phone);
@@ -111,7 +133,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSave, onCancel, i
       contactPhone: formData.contactPhone || '',
       email: formData.email?.toLowerCase().trim(),
       accessCode: formData.accessCode,
-      imageUrl: formData.imageUrl || `https://picsum.photos/seed/${Math.random()}/200/200`,
+      imageUrl: formData.imageUrl,
       createdAt: initialData?.createdAt || Date.now()
     } as Profile;
 
@@ -285,6 +307,44 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSave, onCancel, i
                       <strong className="block text-wedding-navy mb-0.5 text-xs uppercase tracking-wider">Confidentialité Maximale</strong>
                       Seul le Shadchan ou la Shadchanit qui s'occupe de votre dossier pourra voir ces informations. Elles restent strictement confidentielles.
                     </p>
+                  </div>
+
+                  {/* Photo Upload - Optional */}
+                  <div className="bg-white p-6 rounded-2xl border border-wedding-navy/10 shadow-sm">
+                    <label className={labelClass}>Photo de profil (Optionnel)</label>
+                    <div className="flex items-center gap-6">
+                      <div className="relative w-24 h-24 rounded-2xl bg-wedding-navy/5 border-2 border-dashed border-wedding-navy/10 flex items-center justify-center overflow-hidden group hover:border-wedding-gold/50 transition-colors">
+                        {formData.imageUrl ? (
+                          <img src={formData.imageUrl} alt="Profile" className="w-full h-full object-cover" />
+                        ) : (
+                          <User className="w-8 h-8 text-wedding-navy/20 group-hover:text-wedding-gold/50 transition-colors" />
+                        )}
+                        {isUploading && (
+                          <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-10">
+                            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleImageUpload}
+                          className="block w-full text-sm text-wedding-navy/60
+                            file:mr-4 file:py-2.5 file:px-4
+                            file:rounded-xl file:border-0
+                            file:text-[10px] file:font-bold file:uppercase file:tracking-widest
+                            file:bg-wedding-navy file:text-white
+                            hover:file:bg-wedding-navy/90
+                            file:cursor-pointer cursor-pointer
+                            transition-all
+                          "
+                        />
+                        <p className="mt-2 text-[10px] text-wedding-navy/40 font-medium italic">
+                          Une photo aide les Shadchanim à mieux se souvenir de vous. (JPG, PNG. Max 5Mo)
+                        </p>
+                      </div>
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">

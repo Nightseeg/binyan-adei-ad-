@@ -258,7 +258,7 @@ const CandidatePortal: React.FC<CandidatePortalProps> = ({ candidate, onLogout, 
                             <X className="w-4 h-4 text-white/90 group-hover:text-white group-hover:rotate-90 transition-transform" />
                         </button>
 
-                        <div className="h-32 bg-wedding-navy relative overflow-hidden">
+                        <div className="h-32 bg-wedding-navy relative">
                             {/* Decorative Pattern Overlay */}
                             <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '24px 24px' }}></div>
                             <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/20"></div>
