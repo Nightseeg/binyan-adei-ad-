@@ -32,10 +32,8 @@ type SortOption = 'newest' | 'oldest' | 'age_asc' | 'age_desc' | 'name_asc' | 'n
 type DashboardView = 'overview' | 'profiles' | 'pipeline' | 'tasks' | 'settings' | 'messages';
 
 const ShadchanDashboard: React.FC<ShadchanDashboardProps> = ({ profiles: allProfiles, onUpdateProfile, onDeleteProfiles, onLogout, shadchanProfile: initialShadchan, onUpdateShadchan }) => {
-  // Filter profiles based on Shadchan assignment
-  const profiles = initialShadchan
-    ? allProfiles.filter(p => !p.assignedShadchanId || p.assignedShadchanId === initialShadchan.id)
-    : allProfiles;
+  // All Shadchans can see all candidates
+  const profiles = allProfiles;
   const [currentView, setCurrentView] = useState<DashboardView>('overview');
   const [selectedGender, setSelectedGender] = useState<Gender>(Gender.MALE);
   const [selectedProfile, setSelectedProfile] = useState<Profile | null>(null);
