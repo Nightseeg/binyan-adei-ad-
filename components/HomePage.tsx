@@ -58,7 +58,7 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
 
                 {/* Main Heading */}
                 <h1 className="text-4xl sm:text-7xl md:text-9xl font-serif font-bold tracking-tight mb-2 text-wedding-navy drop-shadow-sm leading-none pt-12 md:pt-0">
-                    Binyan Adei Ad
+                    Binian Adei Ad
                 </h1>
                 <div className="text-[10px] md:text-lg font-sans font-bold text-wedding-gold/60 uppercase tracking-[0.2em] md:tracking-[0.3em] mb-6 md:mb-8">
                     by Torat Yaacov
@@ -132,7 +132,7 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
                         <h4 className="text-xl font-serif font-bold text-wedding-navy mb-2">Rav M. Sitruk</h4>
                         <div className="text-[10px] font-bold text-wedding-gold uppercase tracking-[0.2em] mb-4">Beth Hamidrash</div>
                         <p className="text-sm text-wedding-navy/60 italic leading-relaxed">
-                            "Binyan Adei Ad est devenu une référence incontournable."
+                            "Binian Adei Ad est devenu une référence incontournable."
                         </p>
                     </div>
                 </div>

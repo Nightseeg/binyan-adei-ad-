@@ -35,8 +35,8 @@ const MatchPipeline: React.FC<MatchPipelineProps> = ({ matches, profiles, onUpda
 
 
     const matchColumns = [
-        { id: MatchStatus.RESEARCHING, title: 'Recherche', color: 'bg-wedding-navy/10 border-wedding-navy/5 text-wedding-navy' },
-        { id: MatchStatus.SUGGESTED, title: 'Suggéré', color: 'bg-wedding-gold/10 border-wedding-gold/20 text-wedding-navy' },
+        { id: MatchStatus.RESEARCHING, title: 'À proposer', color: 'bg-wedding-navy/10 border-wedding-navy/5 text-wedding-navy' },
+        { id: MatchStatus.SUGGESTED, title: 'En Birourim', color: 'bg-wedding-gold/10 border-wedding-gold/20 text-wedding-navy' },
         { id: MatchStatus.DATING, title: 'Rencontres', color: 'bg-wedding-gold/20 border-wedding-gold/30 text-wedding-navy' },
         { id: MatchStatus.ENGAGED, title: 'Fiancés', color: 'bg-wedding-gold/30 border-wedding-gold/40 text-wedding-navy' }
     ];

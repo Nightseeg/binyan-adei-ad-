@@ -1070,7 +1070,7 @@ const ShadchanDashboard: React.FC<ShadchanDashboardProps> = ({ profiles: allProf
         <div className={`px-6 py-8 flex flex-col ${isSidebarCollapsed ? 'items-center' : 'items-start'} relative z-10 w-full transition-all`}>
           {!isSidebarCollapsed ? (
             <>
-              <span className="font-serif font-bold text-lg tracking-widest text-white block leading-none text-nowrap">BINYAN</span>
+              <span className="font-serif font-bold text-lg tracking-widest text-white block leading-none text-nowrap">BINAN</span>
               <span className="font-serif font-bold text-lg tracking-widest text-wedding-gold block leading-none mb-1 text-nowrap">ADEI AD</span>
               <div className="h-0.5 w-8 bg-white/20 rounded-full"></div>
             </>
@@ -1479,7 +1479,7 @@ const ShadchanDashboard: React.FC<ShadchanDashboardProps> = ({ profiles: allProf
                   <h1 className="text-4xl font-serif font-bold text-wedding-navy tracking-tight">
                     Bonjour, <span className="text-wedding-gold italic">Shadchan</span>
                   </h1>
-                  <p className="text-wedding-text/60 mt-2 font-medium tracking-wide">Voici un aperçu de l'activité du jour pour Binyan Adei Ad.</p>
+                  <p className="text-wedding-text/60 mt-2 font-medium tracking-wide">Voici un aperçu de l'activité du jour pour Binian Adei Ad.</p>
                 </div>
 
                 {/* Information Reminder Banner */}
@@ -1855,13 +1855,9 @@ const ShadchanDashboard: React.FC<ShadchanDashboardProps> = ({ profiles: allProf
                               </div>
                             )}
 
-                            <div className={`mt-2 flex items-center justify-between`}>
+                            <div className={`mt-2`}>
                               <div className={`px-2 py-0.5 rounded-md text-[8px] font-bold uppercase tracking-wider border ${selectedProfile?.id === profile.id ? 'bg-wedding-gold text-wedding-navy border-wedding-gold' : 'bg-wedding-navy/5 text-wedding-navy/60 border-wedding-navy/5'}`}>
                                 {profile.religiousLevel}
-                              </div>
-                              <div className={`flex items-center gap-1 text-[8px] font-bold ${selectedProfile?.id === profile.id ? 'text-white/80' : 'text-wedding-navy/40'}`}>
-                                <CheckSquare className="w-2.5 h-2.5" />
-                                {calculateCompletionScore(profile)}%
                               </div>
                             </div>
                           </div>

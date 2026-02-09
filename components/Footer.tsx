@@ -9,7 +9,7 @@ const Footer: React.FC = () => {
                     <div className="md:col-span-2">
                         <div className="flex items-center gap-2 mb-4">
                             <HeartHandshake className="w-5 h-5 text-indigo-500" />
-                            <span className="font-serif text-slate-800 text-lg font-bold">Binyan Adei Ad</span>
+                            <span className="font-serif text-slate-800 text-lg font-bold">Binian Adei Ad</span>
                         </div>
                         <p className="text-slate-500 mb-6">Plateforme communautaire dédiée aux mariages juifs authentiques.</p>
                         <div className="flex gap-2">
@@ -37,7 +37,7 @@ const Footer: React.FC = () => {
                     </div>
                 </div>
                 <div className="border-t border-slate-100 pt-8 text-center text-slate-400 text-sm">
-                    <p>© {new Date().getFullYear()} Binyan Adei Ad. Une initiative communautaire.</p>
+                    <p>© {new Date().getFullYear()} Binian Adei Ad. Une initiative communautaire.</p>
                 </div>
             </div>
         </footer>

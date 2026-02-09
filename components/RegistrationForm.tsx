@@ -227,7 +227,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSave, onCancel, i
           </div>
 
           <div className="hidden lg:block">
-            <h2 className="text-4xl font-serif font-bold mb-3 leading-tight">Binyan Adei Ad</h2>
+            <h2 className="text-4xl font-serif font-bold mb-3 leading-tight">Binian Adei Ad</h2>
             <p className="text-white/40 text-[11px] font-bold uppercase tracking-[0.3em] mb-16 italic">Votre futur commence ici</p>
           </div>
 
@@ -762,7 +762,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSave, onCancel, i
                         label="Milieu familial recherché *"
                         name="searchFamily"
                         options={formData.gender === Gender.MALE
-                          ? ["Fille de maison pratiquante", "Milieu Yéchiva", "Ba’alat téchouva", "Torani"]
+                          ? ["Fille de maison pratiquante", "Milieu Yéchiva", "Ba'alat téchouva"]
                           : ["Famille Torah", "Famille Moderne", "Baal Téchouva", "Ouverte"]}
                       />
                       <textarea
@@ -776,11 +776,10 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSave, onCancel, i
                     </div>
 
                     <div className="space-y-6">
-                         <label className={labelClass}>Origine / Rite recherché</label>
                          <QCMGroup
-                            label="Rite / Noussa'h"
+                            label="Origine recherchée"
                             name="searchNusach"
-                            options={["Ashkenaze", "Sefarade", "Edot Hamizrah", "Hassidique", "Peu importe"]}
+                            options={["Séfarade", "Ashkenaze", "Peu importe"]}
                          />
                     </div>
 
@@ -949,7 +948,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSave, onCancel, i
                     <div className="bg-wedding-navy/5 p-6 rounded-3xl border border-wedding-gold/20 flex gap-4">
                       <Info className="w-6 h-6 text-wedding-gold shrink-0" />
                       <p className="text-[10px] text-wedding-navy/60 leading-relaxed font-medium">
-                        En validant votre inscription, vous rejoignez la communauté Binyan Adei Ad. Vos informations sont traitées avec la plus grande discrétion par nos Shadchanim.
+                        En validant votre inscription, vous rejoignez la communauté Binian Adei Ad. Vos informations sont traitées avec la plus grande discrétion par nos Shadchanim.
                       </p>
                     </div>
                   </div>

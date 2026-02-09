@@ -154,11 +154,7 @@ const CandidatePortal: React.FC<CandidatePortalProps> = ({ candidate, onLogout, 
                                 </div>
                                 <div>
                                     <h3 className="font-serif font-bold text-wedding-navy text-lg leading-none mb-1">{shadchanProfile?.name || 'Votre Shadchan'}</h3>
-                                    <div className="flex items-center gap-2">
-                                        <p className="text-[10px] text-wedding-gold font-bold tracking-widest uppercase">{shadchanProfile?.role || 'Conciergerie Privée'}</p>
-                                        <span className="text-[10px] text-wedding-navy/40">•</span>
-                                        <p className="text-[10px] text-green-600 font-bold">En ligne</p>
-                                    </div>
+                                    <p className="text-[10px] text-green-600 font-bold">En ligne</p>
                                 </div>
                             </div>
                         </div>
