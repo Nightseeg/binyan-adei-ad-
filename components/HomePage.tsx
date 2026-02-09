@@ -109,28 +109,28 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
                     <div className="glass-card p-10 rounded-3xl border-wedding-gold/10 text-center group hover:-translate-y-2 transition-all duration-500 shadow-xl shadow-wedding-navy/5">
                         <Quote className="w-8 h-8 text-wedding-gold/20 mx-auto mb-6 group-hover:text-wedding-gold transition-colors" />
-                        <h4 className="text-xl font-serif font-bold text-wedding-navy mb-2">Rav A. Dreyfuss</h4>
-                        <div className="text-[10px] font-bold text-wedding-gold uppercase tracking-[0.2em] mb-4">Conseiller Spirituel</div>
+                        <h4 className="text-xl font-serif font-bold text-wedding-navy mb-2">Rav À compléter</h4>
+                        <div className="text-[10px] font-bold text-wedding-gold uppercase tracking-[0.2em] mb-4">Fonction à définir</div>
                         <p className="text-sm text-wedding-navy/60 italic leading-relaxed">
-                            "Une initative précieuse pour la pérennité de nos foyers."
+                            "Citation ou message de soutien à venir..."
                         </p>
                     </div>
 
                     <div className="glass-card p-10 rounded-3xl border-wedding-gold/10 text-center group hover:-translate-y-2 transition-all duration-500 shadow-xl shadow-wedding-navy/5">
                         <Quote className="w-8 h-8 text-wedding-gold/20 mx-auto mb-6 group-hover:text-wedding-gold transition-colors" />
-                        <h4 className="text-xl font-serif font-bold text-wedding-navy mb-2">Rav Y. Rottenberg</h4>
-                        <div className="text-[10px] font-bold text-wedding-gold uppercase tracking-[0.2em] mb-4">Kahal Chassidim</div>
+                        <h4 className="text-xl font-serif font-bold text-wedding-navy mb-2">Rav À compléter</h4>
+                        <div className="text-[10px] font-bold text-wedding-gold uppercase tracking-[0.2em] mb-4">Fonction à définir</div>
                         <p className="text-sm text-wedding-navy/60 italic leading-relaxed">
-                            "Un service d'exception alliant modernité et traditions."
+                            "Citation ou message de soutien à venir..."
                         </p>
                     </div>
 
                     <div className="glass-card p-10 rounded-3xl border-wedding-gold/10 text-center group hover:-translate-y-2 transition-all duration-500 shadow-xl shadow-wedding-navy/5">
                         <Quote className="w-8 h-8 text-wedding-gold/20 mx-auto mb-6 group-hover:text-wedding-gold transition-colors" />
-                        <h4 className="text-xl font-serif font-bold text-wedding-navy mb-2">Rav M. Sitruk</h4>
-                        <div className="text-[10px] font-bold text-wedding-gold uppercase tracking-[0.2em] mb-4">Beth Hamidrash</div>
+                        <h4 className="text-xl font-serif font-bold text-wedding-navy mb-2">Rav À compléter</h4>
+                        <div className="text-[10px] font-bold text-wedding-gold uppercase tracking-[0.2em] mb-4">Fonction à définir</div>
                         <p className="text-sm text-wedding-navy/60 italic leading-relaxed">
-                            "Binian Adei Ad est devenu une référence incontournable."
+                            "Citation ou message de soutien à venir..."
                         </p>
                     </div>
                 </div>
