@@ -60,9 +60,7 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
                 <h1 className="text-4xl sm:text-7xl md:text-9xl font-serif font-bold tracking-tight mb-2 text-wedding-navy drop-shadow-sm leading-none pt-12 md:pt-0">
                     Binian Adei Ad
                 </h1>
-                <div className="text-[10px] md:text-lg font-sans font-bold text-wedding-gold/60 uppercase tracking-[0.2em] md:tracking-[0.3em] mb-6 md:mb-8">
-                    by Torat Yaacov
-                </div>
+
 
                 {/* Subtitle with lines */}
                 <div className="flex items-center justify-center gap-2 md:gap-4 mb-12 md:mb-16">

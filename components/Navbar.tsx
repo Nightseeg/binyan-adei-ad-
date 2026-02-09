@@ -18,7 +18,7 @@ const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate, darkMode, togg
 
                         <span className="font-serif text-lg md:text-2xl font-bold text-wedding-navy tracking-tight md:tracking-luxury flex flex-col md:flex-row md:items-baseline md:gap-2">
                             Binian Adei Ad
-                            <span className="text-[8px] md:text-[10px] font-sans font-bold text-wedding-gold/60 uppercase tracking-widest leading-none md:leading-normal">by Torat Yaacov</span>
+                            
                         </span>
                     </div>
                     <div className="flex items-center space-x-2 md:space-x-6">
