@@ -428,15 +428,8 @@ const ShadchanDashboard: React.FC<ShadchanDashboardProps> = ({ profiles: allProf
           api.getNotifications()
         ]);
 
-        // Filter Matches
-        const relevantMatches = shadchanData
-          ? matchesData.filter((m: Match) =>
-            m.createdById === shadchanData.id ||
-            // Also include matches where one of the candidates is assigned to this shadchan
-            profiles.some(p => p.id === m.boyId && p.assignedShadchanId === shadchanData.id) ||
-            profiles.some(p => p.id === m.girlId && p.assignedShadchanId === shadchanData.id)
-          )
-          : matchesData;
+        // Load ALL matches so we can filter candidate visibility across shadchans
+        const relevantMatches = matchesData;
 
         // Filter Tasks
         const relevantTasks = shadchanData
@@ -583,17 +576,15 @@ const ShadchanDashboard: React.FC<ShadchanDashboardProps> = ({ profiles: allProf
       const matchesTag = selectedTag ? p.tags?.includes(selectedTag) : true;
       const matchesMyCandidates = showOnlyMyCandidates ? p.assignedShadchanId === shadchanProfile?.id : true;
 
-      // Exclusivity filter: hide profiles that are in a non-archived match (regardless of creator)
-      // We removed this to let Shadchan see matched candidates
-      /*
-      const isExclusivelyMatched = matches.some(m =>
+      // Exclusivity filter: hide profiles that are in an active match created by ANOTHER shadchan
+      const isMatchedByOtherShadchan = matches.some(m =>
         (m.boyId === p.id || m.girlId === p.id) &&
         m.status !== MatchStatus.ARCHIVED &&
-        m.status !== MatchStatus.DROPPED
+        m.status !== MatchStatus.DROPPED &&
+        m.createdById !== shadchanProfile?.id
       );
-      */
 
-      return matchesGender && matchesSearch && matchesReligion && matchesCity && matchesFavorite && matchesTag && matchesMyCandidates;
+      return matchesGender && matchesSearch && matchesReligion && matchesCity && matchesFavorite && matchesTag && matchesMyCandidates && !isMatchedByOtherShadchan;
     })
     .sort((a, b) => {
       switch (sortOption) {
