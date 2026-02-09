@@ -1,0 +1,12 @@
+# Robots.txt for Binian Adei Ad
+# https://www.binianadeiad.com
+
+User-agent: *
+Allow: /
+
+# Sitemap location
+Sitemap: https://www.binianadeiad.com/sitemap.xml
+
+# Block sensitive areas
+Disallow: /dashboard
+Disallow: /candidate-portal
