@@ -13,7 +13,9 @@ const CandidateLogin: React.FC<CandidateLoginProps> = ({ onLoginSuccess, onCance
     const [accessCode, setAccessCode] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
+    const [message, setMessage] = useState('');
     const [showCode, setShowCode] = useState(false);
+    const [view, setView] = useState<'login' | 'forgot_password'>('login');
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -48,6 +50,23 @@ const CandidateLogin: React.FC<CandidateLoginProps> = ({ onLoginSuccess, onCance
         }
     };
 
+    const handleForgotPassword = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsLoading(true);
+        setError('');
+        setMessage('');
+
+        try {
+            await api.resetCandidatePassword(email.toLowerCase().trim());
+            setMessage('Si l\'adresse correspond à un compte, un email a été envoyé avec votre code.');
+        } catch (err) {
+            console.error(err);
+            setError('Erreur lors de la demande de réinitialisation.');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     return (
         <div className="min-h-screen flex flex-col items-center justify-center relative z-10">
             <div className="w-full max-w-md px-4 flex flex-col">
@@ -60,54 +79,107 @@ const CandidateLogin: React.FC<CandidateLoginProps> = ({ onLoginSuccess, onCance
                         <p className="text-wedding-text mt-2 font-light">Accédez à votre dossier confidentiel</p>
                     </div>
 
-                    <form onSubmit={handleLogin} className="space-y-6">
-                        <div>
-                            <label className="block text-xs font-bold text-wedding-navy/70 uppercase tracking-widest mb-2">Email</label>
-                            <input
-                                type="email"
-                                required
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                className="w-full rounded-xl border-wedding-rose bg-white/50 px-4 py-3 text-wedding-navy placeholder:text-wedding-text/40 focus:border-wedding-gold focus:bg-white focus:ring-0 transition-all shadow-sm"
-                                placeholder="votre@email.com"
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-xs font-bold text-wedding-navy/70 uppercase tracking-widest mb-2">Code Secret</label>
-                            <div className="relative">
+                    {view === 'login' ? (
+                        <form onSubmit={handleLogin} className="space-y-6">
+                            <div>
+                                <label className="block text-xs font-bold text-wedding-navy/70 uppercase tracking-widest mb-2">Email</label>
                                 <input
-                                    type={showCode ? "text" : "password"}
+                                    type="email"
                                     required
-                                    value={accessCode}
-                                    onChange={(e) => setAccessCode(e.target.value)}
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
                                     className="w-full rounded-xl border-wedding-rose bg-white/50 px-4 py-3 text-wedding-navy placeholder:text-wedding-text/40 focus:border-wedding-gold focus:bg-white focus:ring-0 transition-all shadow-sm"
-                                    placeholder="••••"
+                                    placeholder="votre@email.com"
                                 />
-                                <button
-                                    type="button"
-                                    onClick={() => setShowCode(!showCode)}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-wedding-text/50 hover:text-wedding-navy transition-colors"
-                                >
-                                    {showCode ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                                </button>
                             </div>
-                        </div>
 
-                        {error && (
-                            <div className="p-3 bg-red-50/80 backdrop-blur-sm border border-red-100 text-red-600 text-sm rounded-xl text-center font-medium">
-                                {error}
+                            <div>
+                                <div className="flex justify-between items-center mb-2">
+                                    <label className="block text-xs font-bold text-wedding-navy/70 uppercase tracking-widest">Code Secret</label>
+                                    <button
+                                        type="button"
+                                        onClick={() => { setView('forgot_password'); setError(''); setMessage(''); }}
+                                        className="text-[10px] font-bold text-wedding-gold hover:text-wedding-navy transition-colors uppercase tracking-widest"
+                                    >
+                                        Code oublié ?
+                                    </button>
+                                </div>
+                                <div className="relative">
+                                    <input
+                                        type={showCode ? "text" : "password"}
+                                        required
+                                        value={accessCode}
+                                        onChange={(e) => setAccessCode(e.target.value)}
+                                        className="w-full rounded-xl border-wedding-rose bg-white/50 px-4 py-3 text-wedding-navy placeholder:text-wedding-text/40 focus:border-wedding-gold focus:bg-white focus:ring-0 transition-all shadow-sm"
+                                        placeholder="••••"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowCode(!showCode)}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-wedding-text/50 hover:text-wedding-navy transition-colors"
+                                    >
+                                        {showCode ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                    </button>
+                                </div>
                             </div>
-                        )}
 
-                        <button
-                            type="submit"
-                            disabled={isLoading}
-                            className="w-full py-3.5 bg-wedding-navy text-white rounded-xl font-bold shadow-xl hover:bg-wedding-navy/90 hover:-translate-y-0.5 disabled:opacity-70 transition-all flex items-center justify-center gap-2 border border-wedding-navy"
-                        >
-                            {isLoading ? 'Authentification...' : 'Accéder mon espace'}
-                        </button>
-                    </form>
+                            {error && (
+                                <div className="p-3 bg-red-50/80 backdrop-blur-sm border border-red-100 text-red-600 text-sm rounded-xl text-center font-medium">
+                                    {error}
+                                </div>
+                            )}
+
+                            <button
+                                type="submit"
+                                disabled={isLoading}
+                                className="w-full py-3.5 bg-wedding-navy text-white rounded-xl font-bold shadow-xl hover:bg-wedding-navy/90 hover:-translate-y-0.5 disabled:opacity-70 transition-all flex items-center justify-center gap-2 border border-wedding-navy"
+                            >
+                                {isLoading ? 'Authentification...' : 'Accéder mon espace'}
+                            </button>
+                        </form>
+                    ) : (
+                        <form onSubmit={handleForgotPassword} className="space-y-6">
+                            <div>
+                                <label className="block text-xs font-bold text-wedding-navy/70 uppercase tracking-widest mb-2">Email</label>
+                                <input
+                                    type="email"
+                                    required
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    className="w-full rounded-xl border-wedding-rose bg-white/50 px-4 py-3 text-wedding-navy placeholder:text-wedding-text/40 focus:border-wedding-gold focus:bg-white focus:ring-0 transition-all shadow-sm"
+                                    placeholder="votre@email.com"
+                                />
+                            </div>
+
+                            {error && (
+                                <div className="p-3 bg-red-50/80 backdrop-blur-sm border border-red-100 text-red-600 text-sm rounded-xl text-center font-medium">
+                                    {error}
+                                </div>
+                            )}
+
+                            {message && (
+                                <div className="p-3 bg-green-50/80 backdrop-blur-sm border border-green-100 text-green-700 text-sm rounded-xl text-center font-medium">
+                                    {message}
+                                </div>
+                            )}
+
+                            <button
+                                type="submit"
+                                disabled={isLoading}
+                                className="w-full py-3.5 bg-wedding-gold text-wedding-navy rounded-xl font-bold shadow-xl hover:bg-wedding-gold/90 hover:-translate-y-0.5 disabled:opacity-70 transition-all flex items-center justify-center gap-2 border border-wedding-gold"
+                            >
+                                {isLoading ? 'Envoi...' : 'Récupérer mon code'}
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() => { setView('login'); setError(''); setMessage(''); }}
+                                className="w-full text-xs font-bold text-wedding-navy/70 hover:text-wedding-navy uppercase tracking-widest transition-colors mt-4"
+                            >
+                                Retour à la connexion
+                            </button>
+                        </form>
+                    )}
                 </div>
             </div>
 

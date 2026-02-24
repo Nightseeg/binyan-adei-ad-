@@ -305,14 +305,35 @@ export const api = {
         const { data, error } = await supabase
             .from('profiles')
             .select('*')
-            .eq('email', email)
-            .eq('access_code', code)
-            .maybeSingle(); // Use maybeSingle to return null instead of throwing error if not found
-            
-        if (error) throw error;
-        if (!data) return null; // Gracefully return null if no user found
+            .eq('email', email.trim().toLowerCase())
+            .eq('access_code', code.trim())
+            .single();
+
+        if (error || !data) return null;
         return mapProfileFromDB(data);
     },
+
+    resetCandidatePassword: async (email: string) => {
+        try {
+            const { data, error } = await supabase.functions.invoke('candidate-recovery', {
+                body: { email: email.trim().toLowerCase() }
+            });
+            if (error) throw error;
+            return data;
+        } catch (err) {
+            console.error("Erreur réinitialisation candidat:", err);
+            throw err;
+        }
+    },
+
+    resetShadchanPassword: async (email: string) => {
+        const { data, error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
+            redirectTo: window.location.origin + '/reset-password',
+        });
+        if (error) throw error;
+        return data;
+    },
+
 
     // Matches
     getMatches: async () => {

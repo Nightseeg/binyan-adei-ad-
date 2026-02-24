@@ -11,6 +11,9 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onCancel }) => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
+    const [message, setMessage] = useState('');
+    const [error, setError] = useState('');
+    const [view, setView] = useState<'login' | 'forgot_password'>('login');
 
     const handleLogin = async () => {
         setLoading(true);
@@ -46,8 +49,26 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onCancel }) => {
                 // For now, proceed. If shadchanProfile is missing, Dashboard handles it as "Admin" or default.
                 onLoginSuccess(null);
             }
-        } catch (error: any) {
-            alert("Erreur de connexion: " + error.message);
+        } catch (err: any) {
+            setError(err.message || "Erreur de connexion");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleForgotPassword = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setLoading(true);
+        setError('');
+        setMessage('');
+
+        try {
+            const { api } = await import('../services/dataService');
+            await api.resetShadchanPassword(email.toLowerCase().trim());
+            setMessage('Un email de réinitialisation vous a été envoyé.');
+        } catch (err: any) {
+            console.error(err);
+            setError(err.message || 'Erreur lors de la demande de réinitialisation.');
         } finally {
             setLoading(false);
         }
@@ -60,40 +81,102 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onCancel }) => {
                     <h2 className="text-3xl font-serif font-bold text-wedding-navy mb-8">Connexion Shadchan</h2>
 
                     <div className="w-full space-y-6">
-                        <div>
-                            <label className="block text-xs font-bold text-wedding-navy/70 uppercase tracking-widest mb-2">Email</label>
-                            <input
-                                type="email"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                className="w-full rounded-xl border-wedding-rose bg-white/50 px-4 py-3 text-wedding-navy placeholder:text-wedding-text/40 focus:border-wedding-gold focus:bg-white focus:ring-0 transition-all shadow-sm"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-xs font-bold text-wedding-navy/70 uppercase tracking-widest mb-2">Mot de passe</label>
-                            <input
-                                type="password"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                className="w-full rounded-xl border-wedding-rose bg-white/50 px-4 py-3 text-wedding-navy placeholder:text-wedding-text/40 focus:border-wedding-gold focus:bg-white focus:ring-0 transition-all shadow-sm"
-                                onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
-                            />
-                        </div>
+                        {view === 'login' ? (
+                            <form onSubmit={(e) => { e.preventDefault(); handleLogin(); }} className="space-y-6">
+                                <div>
+                                    <label className="block text-xs font-bold text-wedding-navy/70 uppercase tracking-widest mb-2">Email</label>
+                                    <input
+                                        type="email"
+                                        required
+                                        value={email}
+                                        onChange={(e) => setEmail(e.target.value)}
+                                        className="w-full rounded-xl border-wedding-rose bg-white/50 px-4 py-3 text-wedding-navy placeholder:text-wedding-text/40 focus:border-wedding-gold focus:bg-white focus:ring-0 transition-all shadow-sm"
+                                    />
+                                </div>
+                                <div>
+                                    <div className="flex justify-between items-center mb-2">
+                                        <label className="block text-xs font-bold text-wedding-navy/70 uppercase tracking-widest">Mot de passe</label>
+                                        <button
+                                            type="button"
+                                            onClick={() => { setView('forgot_password'); setError(''); setMessage(''); }}
+                                            className="text-[10px] font-bold text-wedding-gold hover:text-wedding-navy transition-colors uppercase tracking-widest"
+                                        >
+                                            Mot de passe oublié ?
+                                        </button>
+                                    </div>
+                                    <input
+                                        type="password"
+                                        required
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        className="w-full rounded-xl border-wedding-rose bg-white/50 px-4 py-3 text-wedding-navy placeholder:text-wedding-text/40 focus:border-wedding-gold focus:bg-white focus:ring-0 transition-all shadow-sm"
+                                    />
+                                </div>
 
-                        <button
-                            onClick={handleLogin}
-                            disabled={loading}
-                            className="w-full py-3.5 bg-wedding-navy text-white rounded-xl font-bold shadow-xl hover:bg-wedding-navy/90 hover:-translate-y-0.5 disabled:opacity-70 transition-all border border-wedding-navy"
-                        >
-                            {loading ? 'Connexion...' : 'Se connecter'}
-                        </button>
+                                {error && (
+                                    <div className="p-3 bg-red-50/80 backdrop-blur-sm border border-red-100 text-red-600 text-sm rounded-xl text-center font-medium">
+                                        {error}
+                                    </div>
+                                )}
 
-                        <div className="text-center pt-6 border-t border-wedding-navy/10">
-                            <p className="text-xs text-wedding-text/70 italic font-serif">
-                                L'accès est réservé aux Shadchanim accrédités.<br />
-                                Contactez l'administrateur pour obtenir un compte.
-                            </p>
-                        </div>
+                                <button
+                                    type="submit"
+                                    disabled={loading}
+                                    className="w-full py-3.5 bg-wedding-navy text-white rounded-xl font-bold shadow-xl hover:bg-wedding-navy/90 hover:-translate-y-0.5 disabled:opacity-70 transition-all border border-wedding-navy"
+                                >
+                                    {loading ? 'Connexion...' : 'Se connecter'}
+                                </button>
+
+                                <div className="text-center pt-6 border-t border-wedding-navy/10">
+                                    <p className="text-xs text-wedding-text/70 italic font-serif">
+                                        L'accès est réservé aux Shadchanim accrédités.<br />
+                                        Contactez l'administrateur pour obtenir un compte.
+                                    </p>
+                                </div>
+                            </form>
+                        ) : (
+                            <form onSubmit={handleForgotPassword} className="space-y-6">
+                                <div>
+                                    <label className="block text-xs font-bold text-wedding-navy/70 uppercase tracking-widest mb-2">Email</label>
+                                    <input
+                                        type="email"
+                                        required
+                                        value={email}
+                                        onChange={(e) => setEmail(e.target.value)}
+                                        className="w-full rounded-xl border-wedding-rose bg-white/50 px-4 py-3 text-wedding-navy placeholder:text-wedding-text/40 focus:border-wedding-gold focus:bg-white focus:ring-0 transition-all shadow-sm"
+                                        placeholder="votre@email.com"
+                                    />
+                                </div>
+
+                                {error && (
+                                    <div className="p-3 bg-red-50/80 backdrop-blur-sm border border-red-100 text-red-600 text-sm rounded-xl text-center font-medium">
+                                        {error}
+                                    </div>
+                                )}
+
+                                {message && (
+                                    <div className="p-3 bg-green-50/80 backdrop-blur-sm border border-green-100 text-green-700 text-sm rounded-xl text-center font-medium">
+                                        {message}
+                                    </div>
+                                )}
+
+                                <button
+                                    type="submit"
+                                    disabled={loading}
+                                    className="w-full py-3.5 bg-wedding-gold text-wedding-navy rounded-xl font-bold shadow-xl hover:bg-wedding-gold/90 hover:-translate-y-0.5 disabled:opacity-70 transition-all flex items-center justify-center gap-2 border border-wedding-gold"
+                                >
+                                    {loading ? 'Envoi...' : 'Réinitiliser'}
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={() => { setView('login'); setError(''); setMessage(''); }}
+                                    className="w-full text-xs font-bold text-wedding-navy/70 hover:text-wedding-navy uppercase tracking-widest transition-colors mt-4"
+                                >
+                                    Retour à la connexion
+                                </button>
+                            </form>
+                        )}
                     </div>
                 </div>
             </div>
