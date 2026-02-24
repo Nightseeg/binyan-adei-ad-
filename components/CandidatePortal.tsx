@@ -3,7 +3,7 @@ import { Profile } from '../types';
 import { api } from '../services/dataService';
 import { supabase } from '../services/supabaseClient';
 import RegistrationForm from './RegistrationForm';
-import { MessageCircle, User, LogOut, Send, Loader2, X, Phone, Mail, MapPin, Clock } from 'lucide-react';
+import { MessageCircle, User, LogOut, Send, Loader2, X, Phone, Mail, MapPin, Clock, Users, Heart, Check } from 'lucide-react';
 
 interface CandidatePortalProps {
     candidate: Profile;
@@ -19,6 +19,21 @@ const CandidatePortal: React.FC<CandidatePortalProps> = ({ candidate, onLogout, 
     const [isLoading, setIsLoading] = useState(false);
     const [initialLoadComplete, setInitialLoadComplete] = useState(false);
     const [showShadchanDetails, setShowShadchanDetails] = useState(false);
+    const [showShadchanSelector, setShowShadchanSelector] = useState(false);
+    const [shadchansList, setShadchansList] = useState<any[]>([]);
+    const [isUpdatingShadchan, setIsUpdatingShadchan] = useState(false);
+
+    useEffect(() => {
+        const fetchShadchans = async () => {
+            try {
+                const data = await api.getShadchans();
+                setShadchansList(data || []);
+            } catch (err) {
+                console.error("Erreur chargement Shadchanim", err);
+            }
+        };
+        fetchShadchans();
+    }, []);
 
     useEffect(() => {
         const loadShadchan = async () => {
@@ -90,6 +105,25 @@ const CandidatePortal: React.FC<CandidatePortalProps> = ({ candidate, onLogout, 
             alert("Erreur lors de l'envoi");
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    const handleChangeShadchan = async (newShadchanId: number) => {
+        setIsUpdatingShadchan(true);
+        try {
+            const updatedProfile = await api.updateProfile({ 
+                ...candidate, 
+                assignedShadchanId: newShadchanId 
+            } as Profile);
+            onUpdateProfile(updatedProfile);
+            setShowShadchanSelector(false);
+            setShowShadchanDetails(false);
+            alert("Votre Shadchan a été mis à jour avec succès !");
+        } catch (error) {
+            console.error("Erreur changement shadchan:", error);
+            alert("Erreur lors du changement de Shadchan.");
+        } finally {
+            setIsUpdatingShadchan(false);
         }
     };
 
@@ -177,6 +211,14 @@ const CandidatePortal: React.FC<CandidatePortalProps> = ({ candidate, onLogout, 
                                             Recherche de Shadchan...
                                         </div>
                                     </div>
+
+                                    <button 
+                                        onClick={() => setShowShadchanSelector(true)}
+                                        className="mt-6 px-6 py-3 bg-white text-wedding-navy border border-wedding-navy/10 rounded-xl font-bold hover:bg-wedding-navy/5 transition-colors flex items-center justify-center gap-2 shadow-sm text-sm"
+                                    >
+                                        <Users className="w-4 h-4" />
+                                        Choisir mon Shadchan maintenant
+                                    </button>
 
                                     {/* Show candidate's own messages if any */}
                                     {messages.length > 0 && (
@@ -313,11 +355,93 @@ const CandidatePortal: React.FC<CandidatePortalProps> = ({ candidate, onLogout, 
                             </div>
 
                             <button
+                                onClick={() => {
+                                    setShowShadchanDetails(false);
+                                    setShowShadchanSelector(true);
+                                }}
+                                className="mt-8 w-full py-4 bg-white text-wedding-navy rounded-2xl font-bold uppercase tracking-widest text-xs hover:bg-wedding-navy/5 transition-all shadow-sm active:scale-95 border border-wedding-navy/10 mb-3"
+                            >
+                                Changer de Shadchan
+                            </button>
+
+                            <button
                                 onClick={() => setShowShadchanDetails(false)}
-                                className="mt-8 w-full py-4 bg-wedding-navy text-white rounded-2xl font-bold uppercase tracking-widest text-xs hover:bg-wedding-navy/90 transition-all shadow-xl shadow-wedding-navy/20 active:scale-95 border border-wedding-gold/10"
+                                className="w-full py-4 bg-wedding-navy text-white rounded-2xl font-bold uppercase tracking-widest text-xs hover:bg-wedding-navy/90 transition-all shadow-xl shadow-wedding-navy/20 active:scale-95 border border-wedding-gold/10"
                             >
                                 Fermer la fiche
                             </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Shadchan Selector Modal */}
+            {showShadchanSelector && (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-wedding-navy/40 backdrop-blur-md animate-fade-in overflow-y-auto">
+                    <div className="bg-white rounded-[2rem] shadow-2xl max-w-4xl w-full relative border border-wedding-navy/5 animate-scale-in my-8">
+                        <div className="p-6 md:p-8 border-b border-wedding-navy/5 flex justify-between items-center bg-gray-50/50 rounded-t-[2rem]">
+                            <div>
+                                <h3 className="text-2xl font-serif font-bold text-wedding-navy">Choisissez votre Shadchan</h3>
+                                <p className="text-sm text-wedding-navy/60 font-medium mt-1">Sélectionnez le Shadchan avec lequel vous souhaitez échanger.</p>
+                            </div>
+                            <button
+                                onClick={() => setShowShadchanSelector(false)}
+                                className="p-2.5 bg-white hover:bg-gray-100 rounded-full transition-all duration-300 shadow-sm border border-gray-200"
+                            >
+                                <X className="w-5 h-5 text-wedding-navy/60 hover:text-wedding-navy" />
+                            </button>
+                        </div>
+
+                        <div className="p-6 md:p-8">
+                            {shadchansList.length > 0 ? (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+                                    {shadchansList.map(shadchan => (
+                                        <div 
+                                            key={shadchan.id}
+                                            className={`rounded-2xl border ${candidate.assignedShadchanId === shadchan.id ? 'border-wedding-gold bg-wedding-gold/5 ring-2 ring-wedding-gold/50' : 'border-wedding-navy/10 bg-white hover:border-wedding-navy/30 hover:shadow-xl hover:-translate-y-1'} p-6 flex flex-col items-center text-center transition-all duration-300 relative group overflow-hidden`}
+                                        >
+                                            {candidate.assignedShadchanId === shadchan.id && (
+                                                <div className="absolute top-4 right-4 bg-wedding-gold text-white text-[10px] font-bold px-3 py-1.5 rounded-full uppercase tracking-widest flex items-center gap-1.5 shadow-md">
+                                                    <Check className="w-3 h-3" /> Actuel
+                                                </div>
+                                            )}
+                                            
+                                            <div className="w-24 h-24 rounded-full bg-cover bg-center border-4 border-white shadow-xl mb-5 relative z-10" style={{ backgroundImage: `url(${shadchan.image_url || '/placeholder-avatar.png'})`, backgroundColor: shadchan.image_url ? 'transparent' : '#f3f4f6' }}>
+                                                {!shadchan.image_url && <User className="w-10 h-10 text-wedding-navy/20 m-auto mt-6" />}
+                                            </div>
+                                            
+                                            <h4 className="font-bold text-xl text-wedding-navy font-serif mb-1 group-hover:text-wedding-gold transition-colors">{shadchan.name}</h4>
+                                            
+                                            {shadchan.speciality && (
+                                                <p className="text-xs text-wedding-gold font-bold uppercase tracking-wider mb-4 px-3 py-1 bg-wedding-gold/10 rounded-full">{shadchan.speciality}</p>
+                                            )}
+                                            
+                                            <button
+                                                onClick={() => handleChangeShadchan(shadchan.id)}
+                                                disabled={candidate.assignedShadchanId === shadchan.id || isUpdatingShadchan}
+                                                className={`mt-auto w-full py-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 ${
+                                                    candidate.assignedShadchanId === shadchan.id 
+                                                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                                    : 'bg-wedding-navy text-white hover:bg-wedding-navy/90 shadow-md hover:shadow-lg active:scale-95'
+                                                }`}
+                                            >
+                                                {isUpdatingShadchan && candidate.assignedShadchanId !== shadchan.id ? (
+                                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                                ) : candidate.assignedShadchanId === shadchan.id ? (
+                                                    'Shadchan Actuel'
+                                                ) : (
+                                                    'Choisir ce Shadchan'
+                                                )}
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="py-20 flex flex-col items-center justify-center text-center">
+                                    <Loader2 className="w-10 h-10 text-wedding-gold animate-spin mb-4" />
+                                    <p className="text-wedding-navy/60 font-medium">Chargement des Shadchanim...</p>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>

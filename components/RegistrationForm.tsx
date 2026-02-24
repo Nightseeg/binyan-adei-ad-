@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Gender, ReligiousLevel, Profile } from '../types';
 import { v4 as uuidv4 } from 'uuid';
-import { Save, ChevronRight, ChevronLeft, Check, User, Key, Mail, Phone, Calendar, MapPin, Users, Heart, GraduationCap, ClipboardList, Info, Star, Lock } from 'lucide-react';
+import { Save, ChevronRight, ChevronLeft, Check, User, Key, Mail, Phone, Calendar, MapPin, Users, Heart, GraduationCap, ClipboardList, Info, Star, Lock, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../services/dataService';
 
@@ -19,7 +19,7 @@ const STEPS = [
   { id: 4, title: 'Vision', description: 'Ambitions & Kehila' },
   { id: 5, title: 'Moi', description: 'Description personnelle' },
   { id: 6, title: 'Recherche', description: 'Profil recherché' },
-  { id: 7, title: 'Finalisation', description: 'Accès & Rabbanim' }
+  { id: 7, title: 'Finalisation', description: 'Accès & Shadchan' }
 ];
 
 const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSave, onCancel, initialData, onLoginClick }) => {
@@ -31,6 +31,19 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSave, onCancel, i
     references: []
   });
   const [isUploading, setIsUploading] = useState(false);
+  const [shadchansList, setShadchansList] = useState<any[]>([]);
+
+  React.useEffect(() => {
+    const fetchShadchans = async () => {
+      try {
+        const data = await api.getShadchans();
+        setShadchansList(data || []);
+      } catch (err) {
+        console.error("Erreur lors du chargement des Shadchanim:", err);
+      }
+    };
+    fetchShadchans();
+  }, []);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -133,6 +146,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSave, onCancel, i
       contactPhone: formData.contactPhone || '',
       email: formData.email?.toLowerCase().trim(),
       accessCode: formData.accessCode,
+      assignedShadchanId: formData.assignedShadchanId,
       imageUrl: formData.imageUrl,
       createdAt: initialData?.createdAt || Date.now()
     } as Profile;
@@ -943,6 +957,51 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSave, onCancel, i
                         </div>
                         <p className="text-[9px] text-wedding-navy/30 mt-2 italic font-medium">Ce code vous servira à vous reconnecter.</p>
                       </div>
+                    </div>
+
+                    <div className="pt-6 border-t border-wedding-navy/5">
+                      <label className={labelClass}>
+                        Avez-vous une préférence pour un Shadchan ? (Facultatif)
+                      </label>
+                      <p className="text-xs text-wedding-navy/50 mb-4 font-medium italic">
+                        Sinon, notre équipe s'occupera de vous attribuer le Shadchan le plus adéquat.
+                      </p>
+                      
+                      {shadchansList.length > 0 ? (
+                        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                            <div 
+                                onClick={() => setFormData({ ...formData, assignedShadchanId: undefined })}
+                                className={`cursor-pointer rounded-2xl border ${!formData.assignedShadchanId ? 'border-wedding-gold bg-wedding-gold/10 ring-1 ring-wedding-gold' : 'border-wedding-navy/10 bg-white hover:border-wedding-navy/30 hover:shadow-md'} p-4 flex flex-col items-center text-center transition-all duration-300 relative`}
+                            >
+                                {!formData.assignedShadchanId && <div className="absolute top-2 right-2 w-4 h-4 rounded-full bg-wedding-gold flex items-center justify-center shadow-lg"><Check className="w-3 h-3 text-white" /></div>}
+                                <div className="w-12 h-12 rounded-full border-2 border-wedding-navy/10 flex items-center justify-center bg-gray-50 mb-3 shadow-inner">
+                                    <Users className="w-6 h-6 text-wedding-navy/40" />
+                                </div>
+                                <h4 className="font-bold text-sm text-wedding-navy font-serif">Pas de préférence</h4>
+                                <p className="text-[10px] text-wedding-navy/50 mt-1">Attribution automatique</p>
+                            </div>
+                            
+                            {shadchansList.map(shadchan => (
+                                <div 
+                                    key={shadchan.id}
+                                    onClick={() => setFormData({ ...formData, assignedShadchanId: shadchan.id })}
+                                    className={`cursor-pointer rounded-2xl border ${formData.assignedShadchanId === shadchan.id ? 'border-wedding-gold bg-wedding-gold/10 ring-1 ring-wedding-gold' : 'border-wedding-navy/10 bg-white hover:border-wedding-navy/30 hover:shadow-md'} p-4 flex flex-col items-center text-center transition-all duration-300 relative`}
+                                >
+                                    {formData.assignedShadchanId === shadchan.id && <div className="absolute top-2 right-2 w-4 h-4 rounded-full bg-wedding-gold flex items-center justify-center shadow-lg"><Check className="w-3 h-3 text-white" /></div>}
+                                    <div className="w-12 h-12 rounded-full bg-cover bg-center border-2 border-white shadow-md mb-3" style={{ backgroundImage: `url(${shadchan.image_url || '/placeholder-avatar.png'})`, backgroundColor: shadchan.image_url ? 'transparent' : '#e5e7eb' }}>
+                                        {!shadchan.image_url && <Heart className="w-5 h-5 text-wedding-navy/30 m-auto mt-3" />}
+                                    </div>
+                                    <h4 className="font-bold text-sm text-wedding-navy font-serif line-clamp-1">{shadchan.name}</h4>
+                                    {shadchan.speciality && <p className="text-[10px] text-wedding-navy/50 mt-1 line-clamp-1">{shadchan.speciality}</p>}
+                                </div>
+                            ))}
+                        </div>
+                      ) : (
+                        <div className="bg-wedding-navy/5 rounded-2xl p-4 flex items-center justify-center gap-3 border border-wedding-navy/10">
+                            <Loader2 className="w-5 h-5 text-wedding-navy/40 animate-spin" />
+                            <p className="text-sm font-medium text-wedding-navy/60">Chargement des Shadchanim disponibles...</p>
+                        </div>
+                      )}
                     </div>
 
                     <div className="bg-wedding-navy/5 p-6 rounded-3xl border border-wedding-gold/20 flex gap-4">
