@@ -9,6 +9,23 @@ interface NavbarProps {
 }
 
 const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate, darkMode, toggleDarkMode }) => {
+    const handleShadchanimClick = () => {
+        if (currentView !== 'home') {
+            onNavigate('home');
+            setTimeout(() => {
+                const element = document.getElementById('shadchanims');
+                if (element) {
+                    element.scrollIntoView({ behavior: 'smooth' });
+                }
+            }, 300);
+        } else {
+            const element = document.getElementById('shadchanims');
+            if (element) {
+                element.scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+    };
+
     return (
         <nav className="glass-nav fixed top-0 left-0 w-full z-50 transition-all duration-500 hover:shadow-xl hover:shadow-wedding-navy/5 px-4">
             <div className="max-w-6xl mx-auto">
@@ -23,6 +40,12 @@ const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate, darkMode, togg
                     </div>
                     <div className="flex items-center space-x-2 md:space-x-6">
 
+                        <button
+                            onClick={handleShadchanimClick}
+                            className="hidden sm:block text-[10px] md:text-xs font-bold tracking-widest uppercase transition-colors text-wedding-navy/60 hover:text-wedding-navy"
+                        >
+                            Nos Shadchanims
+                        </button>
 
                         <div className="hidden sm:block h-4 w-px bg-wedding-navy/10 mx-1 md:mx-2"></div>
 

@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { ArrowRight, LogIn, Quote } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ArrowRight, LogIn, Quote, Users, Target, Heart, CheckCircle2, Phone, Mail, MapPin, User } from 'lucide-react';
+import { api } from '../services/dataService';
 
 interface HomePageProps {
     onNavigate: (view: 'register' | 'dashboard' | 'candidate-login') => void;
@@ -19,6 +20,39 @@ const FadeInImage = ({ src, alt, className }: { src: string; alt: string; classN
 };
 
 const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
+    const [shadchansList, setShadchansList] = useState<any[]>([]);
+    const [userCount, setUserCount] = useState(0);
+    const targetCount = 60;
+
+    useEffect(() => {
+        const fetchShadchans = async () => {
+            try {
+                const data = await api.getShadchans();
+                setShadchansList(data || []);
+            } catch (err) {
+                console.error("Erreur chargement Shadchanim", err);
+            }
+        };
+        fetchShadchans();
+    }, []);
+
+    useEffect(() => {
+        // Animation du compteur
+        let start = 0;
+        const duration = 2000;
+        const increment = targetCount / (duration / 16);
+        const timer = setInterval(() => {
+            start += increment;
+            if (start >= targetCount) {
+                clearInterval(timer);
+                setUserCount(targetCount);
+            } else {
+                setUserCount(Math.floor(start));
+            }
+        }, 16);
+        return () => clearInterval(timer);
+    }, [targetCount]);
+
     return (
         <div className="w-full flex flex-col items-center bg-transparent font-sans text-wedding-navy selection:bg-wedding-rose/30 py-20 relative overflow-hidden">
             {/* Corner Decorations */}
@@ -96,6 +130,124 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
                 </div>
             </div>
 
+            {/* Compteur d'inscrits */}
+            <section className="w-full bg-wedding-navy text-white py-16 text-center transform -skew-y-1 my-12 shadow-2xl z-20">
+                <div className="transform skew-y-1 max-w-4xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-center gap-12">
+                    <div className="flex flex-col items-center">
+                        <Users className="w-12 h-12 text-wedding-gold mb-4" />
+                        <div className="text-5xl md:text-7xl font-serif font-bold tracking-tight text-white mb-2">
+                            +{userCount}
+                        </div>
+                        <p className="text-sm md:text-base font-bold uppercase tracking-[0.2em] text-wedding-gold">Candidats inscrits</p>
+                    </div>
+                </div>
+            </section>
+
+            {/* Notre Objectif & Comment ça se passe */}
+            <section id="objectif" className="w-full max-w-6xl mx-auto px-6 py-24 animate-fade-in relative z-10">
+                <div className="text-center mb-16">
+                    <h2 className="text-4xl font-serif font-bold text-wedding-navy tracking-tight mb-4">
+                        Notre Objectif
+                    </h2>
+                    <div className="w-24 h-px bg-wedding-gold/30 mx-auto mt-6"></div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-16 items-center mb-32">
+                    <div className="space-y-6">
+                        <div className="w-16 h-16 bg-wedding-navy/5 rounded-2xl flex items-center justify-center border border-wedding-navy/10 mb-8">
+                            <Target className="w-8 h-8 text-wedding-gold" />
+                        </div>
+                        <h3 className="text-3xl font-serif font-bold text-wedding-navy">Former de vrais foyers au sein du Klal Yisrael</h3>
+                        <p className="text-lg text-wedding-navy/70 leading-relaxed">
+                            Nous avons fondé Binian Adei Ad avec une mission sacrée : faciliter les rencontres de façon encadrée, respectueuse, et avec l'avis de nos maîtres.
+                        </p>
+                        <ul className="space-y-4 pt-4">
+                            <li className="flex items-start gap-3">
+                                <CheckCircle2 className="w-6 h-6 text-wedding-gold shrink-0" />
+                                <span className="text-wedding-navy/80 font-medium">Un suivi rigoureux et personnalisé par nos Shadchanim expérimentés.</span>
+                            </li>
+                            <li className="flex items-start gap-3">
+                                <CheckCircle2 className="w-6 h-6 text-wedding-gold shrink-0" />
+                                <span className="text-wedding-navy/80 font-medium">Une confidentialité absolue pour préserver la discrétion de chaque dossier.</span>
+                            </li>
+                            <li className="flex items-start gap-3">
+                                <CheckCircle2 className="w-6 h-6 text-wedding-gold shrink-0" />
+                                <span className="text-wedding-navy/80 font-medium">Des conseils bienveillants à chaque étape de votre recherche.</span>
+                            </li>
+                        </ul>
+                    </div>
+                    <div className="relative">
+                        <div className="aspect-[4/5] rounded-[3rem] overflow-hidden border-8 border-white shadow-2xl relative z-10">
+                            <img src="https://images.unsplash.com/photo-1544550581-5f7ceaf7f992?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80" alt="Couple walking" className="w-full h-full object-cover" />
+                        </div>
+                        <div className="absolute top-1/2 -right-8 w-32 h-32 bg-wedding-gold/20 rounded-full blur-3xl z-0"></div>
+                        <div className="absolute -bottom-8 -left-8 w-40 h-40 bg-wedding-navy/10 rounded-full blur-3xl z-0"></div>
+                    </div>
+                </div>
+
+                <div className="text-center mb-16">
+                    <h2 className="text-3xl font-serif font-bold text-wedding-navy tracking-tight mb-4">
+                        Comment ça se passe ?
+                    </h2>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
+                    {/* Trait de connexion */}
+                    <div className="hidden md:block absolute top-12 left-[16.66%] right-[16.66%] h-0.5 bg-gradient-to-r from-transparent via-wedding-gold/30 to-transparent z-0"></div>
+
+                    <div className="relative z-10 flex flex-col items-center text-center p-6">
+                        <div className="w-20 h-20 bg-white rounded-2xl flex items-center justify-center border border-wedding-navy/10 shadow-xl mb-6 text-2xl font-serif font-bold text-wedding-gold">
+                            1
+                        </div>
+                        <h4 className="text-xl font-serif font-bold text-wedding-navy mb-3">Inscription</h4>
+                        <p className="text-wedding-navy/60 font-medium text-sm leading-relaxed">Remplissez votre profil en détail et de manière confidentielle. Exprimez vos attentes et vos valeurs.</p>
+                    </div>
+
+                    <div className="relative z-10 flex flex-col items-center text-center p-6">
+                        <div className="w-20 h-20 bg-white rounded-2xl flex items-center justify-center border border-wedding-navy/10 shadow-xl mb-6 text-2xl font-serif font-bold text-wedding-gold">
+                            2
+                        </div>
+                        <h4 className="text-xl font-serif font-bold text-wedding-navy mb-3">Attribution Shadchan</h4>
+                        <p className="text-wedding-navy/60 font-medium text-sm leading-relaxed">Choisissez un Shadchan parmi notre équipe ou laissez-nous vous attribuer le plus adapté à votre recherche.</p>
+                    </div>
+
+                    <div className="relative z-10 flex flex-col items-center text-center p-6">
+                        <div className="w-20 h-20 bg-white rounded-2xl flex items-center justify-center border border-wedding-navy/10 shadow-xl mb-6 text-2xl font-serif font-bold text-wedding-gold">
+                            3
+                        </div>
+                        <h4 className="text-xl font-serif font-bold text-wedding-navy mb-3">Propositions et Rencontres</h4>
+                        <p className="text-wedding-navy/60 font-medium text-sm leading-relaxed">Échangez avec votre Shadchan, recevez des propositions ciblées et commencez vos rencontres.</p>
+                    </div>
+                </div>
+            </section>
+
+            {/* Nos Shadchanims Section */}
+            <section id="shadchanims" className="w-full max-w-6xl mx-auto px-6 py-24 animate-fade-in border-t border-wedding-gold/10 relative z-10">
+                <div className="text-center mb-16">
+                    <h2 className="text-4xl font-serif font-bold text-wedding-navy tracking-tight mb-4">
+                        Nos Shadchanims
+                    </h2>
+                    <p className="text-wedding-gold font-serif italic text-xl">Une équipe dévouée pour vous accompagner</p>
+                    <div className="w-24 h-px bg-wedding-gold/30 mx-auto mt-6"></div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
+                    {shadchansList.length > 0 ? shadchansList.map((shadchan) => (
+                        <div key={shadchan.id} className="glass-card p-6 rounded-3xl border border-wedding-navy/5 text-center group hover:-translate-y-2 transition-all duration-300 shadow-xl shadow-wedding-navy/5 bg-white/50">
+                            <div className="w-24 h-24 mx-auto rounded-full bg-cover bg-center border-4 border-white shadow-lg mb-4" style={{ backgroundImage: `url(${shadchan.image_url || '/placeholder-avatar.png'})`, backgroundColor: shadchan.image_url ? 'transparent' : '#f3f4f6' }}>
+                                {!shadchan.image_url && <User className="w-10 h-10 text-wedding-navy/20 m-auto mt-6" />}
+                            </div>
+                            <h4 className="text-lg font-serif font-bold text-wedding-navy mb-1 group-hover:text-wedding-gold transition-colors">{shadchan.name}</h4>
+                            {shadchan.speciality && <span className="text-[10px] font-bold text-wedding-gold uppercase tracking-wider">{shadchan.speciality}</span>}
+                        </div>
+                    )) : (
+                        <div className="col-span-full text-center text-wedding-navy/50 font-medium italic py-10">
+                            Chargement de l'équipe...
+                        </div>
+                    )}
+                </div>
+            </section>
+
             {/* Nos Rabbanim Section */}
             <section className="w-full max-w-5xl mx-auto px-6 py-24 animate-fade-in border-t border-wedding-gold/10 relative z-10">
                 <div className="text-center mb-16">
@@ -139,6 +291,36 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
                     Sous la direction halakhique de nos maîtres
                 </div>
 
+            </section>
+
+            {/* Nous Contacter Section */}
+            <section id="contact" className="w-full max-w-5xl mx-auto px-6 py-24 animate-fade-in border-t border-wedding-gold/10 relative z-10">
+                <div className="bg-wedding-navy rounded-[3rem] p-12 md:p-20 text-center relative overflow-hidden shadow-2xl">
+                    <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '32px 32px' }}></div>
+                    
+                    <h2 className="text-4xl md:text-5xl font-serif font-bold text-white tracking-tight mb-4 relative z-10">
+                        Nous Contacter
+                    </h2>
+                    <p className="text-wedding-gold font-serif italic text-xl mb-12 relative z-10">Nous sommes là pour répondre à vos questions</p>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative z-10 max-w-3xl mx-auto">
+                        <div className="bg-white/5 backdrop-blur-sm p-8 rounded-3xl border border-white/10 hover:bg-white/10 transition-colors group text-left">
+                            <Phone className="w-8 h-8 text-wedding-gold mb-4 group-hover:scale-110 transition-transform" />
+                            <h4 className="text-white font-bold mb-1">Téléphone</h4>
+                            <p className="text-white/60 text-sm">01 23 45 67 89</p>
+                        </div>
+                        <div className="bg-white/5 backdrop-blur-sm p-8 rounded-3xl border border-white/10 hover:bg-white/10 transition-colors group text-left">
+                            <Mail className="w-8 h-8 text-wedding-gold mb-4 group-hover:scale-110 transition-transform" />
+                            <h4 className="text-white font-bold mb-1">Email</h4>
+                            <p className="text-white/60 text-sm">contact@binian-adei-ad.com</p>
+                        </div>
+                        <div className="bg-white/5 backdrop-blur-sm p-8 rounded-3xl border border-white/10 hover:bg-white/10 transition-colors group text-left">
+                            <MapPin className="w-8 h-8 text-wedding-gold mb-4 group-hover:scale-110 transition-transform" />
+                            <h4 className="text-white font-bold mb-1">Bureaux</h4>
+                            <p className="text-white/60 text-sm">Jérusalem, Israel</p>
+                        </div>
+                    </div>
+                </div>
             </section>
 
             {/* Bottom Corner Decorations */}
