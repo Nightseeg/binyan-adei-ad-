@@ -137,9 +137,6 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSave, onCancel, i
       return;
     }
 
-    // Redirect to donation page in a new tab
-    window.open('https://bneiyeshivot.com/don', '_blank');
-
     const newProfile: Profile = {
       ...formData,
       id: initialData?.id || uuidv4(),
@@ -1058,8 +1055,8 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSave, onCancel, i
                           Je m'engage à faire un don à Bnei Yeshivot pour soutenir l'action des Shadchanim de Binian Adei Ad.*
                         </span>
                       </label>
-                      <p className="text-[10px] text-wedding-navy/50 italic mt-3 ml-10">
-                        * En finalisant votre inscription, vous serez redirigé vers la page de don sécurisée.
+                      <p className="text-xs text-wedding-navy/70 mt-3 ml-10">
+                        * <a href="https://bneiyeshivot.com/don" target="_blank" rel="noopener noreferrer" className="text-wedding-gold hover:underline font-bold transition-all">Cliquez ici pour accéder à la plateforme de don sécurisée</a>
                       </p>
                     </div>
                   </div>
