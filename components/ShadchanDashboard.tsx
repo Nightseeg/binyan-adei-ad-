@@ -584,7 +584,10 @@ const ShadchanDashboard: React.FC<ShadchanDashboardProps> = ({ profiles: allProf
         m.createdById !== shadchanProfile?.id
       );
 
-      return matchesGender && matchesSearch && matchesReligion && matchesCity && matchesFavorite && matchesTag && matchesMyCandidates && !isMatchedByOtherShadchan;
+      // Hide profiles reserved by ANOTHER shadchan
+      const isReservedByOtherShadchan = p.assignedShadchanId && p.assignedShadchanId !== shadchanProfile?.id;
+
+      return matchesGender && matchesSearch && matchesReligion && matchesCity && matchesFavorite && matchesTag && matchesMyCandidates && !isMatchedByOtherShadchan && !isReservedByOtherShadchan;
     })
     .sort((a, b) => {
       switch (sortOption) {
@@ -1922,6 +1925,46 @@ const ShadchanDashboard: React.FC<ShadchanDashboardProps> = ({ profiles: allProf
                               <div className="flex items-center gap-4">
                                 <h1 className="text-3xl md:text-5xl font-serif font-bold text-wedding-navy mb-2 tracking-tight">{selectedProfile.firstName} {selectedProfile.lastName}</h1>
                                 <div className="flex gap-2">
+                                  {/* Bouton Réserver / Libérer */}
+                                  {!selectedProfile.assignedShadchanId ? (
+                                    <button
+                                      onClick={async () => {
+                                        if (!shadchanProfile) return;
+                                        try {
+                                          await api.updateProfile({ ...selectedProfile, assignedShadchanId: shadchanProfile.id });
+                                          const updatedProfile = { ...selectedProfile, assignedShadchanId: shadchanProfile.id };
+                                          setSelectedProfile(updatedProfile);
+                                          onUpdateProfile(updatedProfile);
+                                          success('Candidat réservé avec succès');
+                                        } catch (error) {
+                                          showError('Erreur lors de la réservation');
+                                        }
+                                      }}
+                                      className="p-2.5 rounded-2xl bg-wedding-navy text-wedding-gold hover:bg-opacity-90 transition-all shadow-lg flex items-center gap-2"
+                                      title="Réserver ce candidat"
+                                    >
+                                      <span className="text-[12px] font-bold uppercase tracking-widest hidden sm:inline">Réserver</span>
+                                    </button>
+                                  ) : selectedProfile.assignedShadchanId === shadchanProfile?.id ? (
+                                      <button
+                                      onClick={async () => {
+                                        try {
+                                          await api.updateProfile({ ...selectedProfile, assignedShadchanId: null });
+                                          const updatedProfile = { ...selectedProfile, assignedShadchanId: null };
+                                          setSelectedProfile(updatedProfile);
+                                          onUpdateProfile(updatedProfile);
+                                          success('Candidat libéré');
+                                        } catch (error) {
+                                          showError('Erreur lors de la libération');
+                                        }
+                                      }}
+                                      className="p-2.5 rounded-2xl bg-wedding-gold/20 text-wedding-navy hover:bg-wedding-gold/30 transition-all shadow-lg flex items-center gap-2"
+                                      title="Libérer ce candidat"
+                                    >
+                                      <span className="text-[12px] font-bold uppercase tracking-widest hidden sm:inline">Libérer</span>
+                                    </button>
+                                  ) : null}
+
                                   <button
                                     onClick={() => {
                                       setModalAction('profile_note');
