@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowRight, LogIn, Quote, Users, Target, Heart, CheckCircle2, Phone, Mail, MapPin, User } from 'lucide-react';
+import { ArrowRight, LogIn, Quote, Users, Target, Heart, CheckCircle2, Phone, Mail, MapPin, User, ShieldCheck, Stars } from 'lucide-react';
 import { api } from '../services/dataService';
 
 interface HomePageProps {
@@ -98,12 +98,17 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
 
                 {/* Subtitle with lines */}
                 <div className="flex items-center justify-center gap-2 md:gap-4 mb-12 md:mb-16">
-                    <div className="hidden xs:block h-px bg-wedding-gold w-8 md:w-24 opacity-60"></div>
-                    <p className="text-lg sm:text-2xl md:text-3xl text-wedding-text font-light tracking-wider md:tracking-widest uppercase px-2">
-                        Le Shidduch d'Excellence
+                    <div className="hidden xs:block h-px bg-wedding-gold w-8 md:w-16 opacity-60"></div>
+                    <p className="text-sm sm:text-lg md:text-xl text-wedding-text font-medium tracking-wide px-2 max-w-2xl mx-auto leading-relaxed">
+                        Le mariage constitue l’une des étapes les plus déterminantes dans la vie d’une personne.
+                        Selon la Torah, il représente la construction d’un foyer fondé sur la kedoucha, la stabilité et la responsabilité mutuelle.
                     </p>
-                    <div className="hidden xs:block h-px bg-wedding-gold w-8 md:w-24 opacity-60"></div>
+                    <div className="hidden xs:block h-px bg-wedding-gold w-8 md:w-16 opacity-60"></div>
                 </div>
+
+                <p className="text-lg md:text-xl text-wedding-navy/80 font-serif italic mb-12 max-w-3xl mx-auto leading-relaxed">
+                    "Notre mission est d’accompagner chaque jeune avec sérieux, discrétion et professionnalisme dans cette démarche essentielle."
+                </p>
 
                 {/* Actions */}
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-8">
@@ -157,22 +162,21 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
                         <div className="w-16 h-16 bg-wedding-navy/5 rounded-2xl flex items-center justify-center border border-wedding-navy/10 mb-8">
                             <Target className="w-8 h-8 text-wedding-gold" />
                         </div>
-                        <h3 className="text-3xl font-serif font-bold text-wedding-navy">Former de vrais foyers au sein du Klal Yisrael</h3>
+                        <h3 className="text-3xl font-serif font-bold text-wedding-navy">Un accompagnement structuré et responsable</h3>
                         <p className="text-lg text-wedding-navy/70 leading-relaxed">
-                            Nous avons fondé Binian Adei Ad avec une mission sacrée : faciliter les rencontres de façon encadrée, respectueuse, et avec l'avis de nos maîtres.
+                            Notre objectif est d’aider chaque personne à trouver une proposition adaptée à sa personnalité, à son parcours et à ses aspirations.
+                        </p>
+                        <p className="text-wedding-navy/70 leading-relaxed">
+                            Nous sommes convaincus que la réussite d’un shidoukh ne repose pas uniquement sur la rencontre, mais sur la qualité du processus, l’analyse des profils et l’encadrement tout au long du cheminement.
                         </p>
                         <ul className="space-y-4 pt-4">
                             <li className="flex items-start gap-3">
                                 <CheckCircle2 className="w-6 h-6 text-wedding-gold shrink-0" />
-                                <span className="text-wedding-navy/80 font-medium">Un suivi rigoureux et personnalisé par nos Shadchanim expérimentés.</span>
+                                <span className="text-wedding-navy/80 font-medium text-sm">Chaque dossier est étudié avec attention afin de proposer des orientations cohérentes.</span>
                             </li>
                             <li className="flex items-start gap-3">
                                 <CheckCircle2 className="w-6 h-6 text-wedding-gold shrink-0" />
-                                <span className="text-wedding-navy/80 font-medium">Une confidentialité absolue pour préserver la discrétion de chaque dossier.</span>
-                            </li>
-                            <li className="flex items-start gap-3">
-                                <CheckCircle2 className="w-6 h-6 text-wedding-gold shrink-0" />
-                                <span className="text-wedding-navy/80 font-medium">Des conseils bienveillants à chaque étape de votre recherche.</span>
+                                <span className="text-wedding-navy/80 font-medium text-sm">Analyse approfondie des profils pour des suggestions sérieuses et réfléchies.</span>
                             </li>
                         </ul>
                     </div>
@@ -191,32 +195,37 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
                     </h2>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
-                    {/* Trait de connexion */}
-                    <div className="hidden md:block absolute top-12 left-[16.66%] right-[16.66%] h-0.5 bg-gradient-to-r from-transparent via-wedding-gold/30 to-transparent z-0"></div>
-
-                    <div className="relative z-10 flex flex-col items-center text-center p-6">
-                        <div className="w-20 h-20 bg-white rounded-2xl flex items-center justify-center border border-wedding-navy/10 shadow-xl mb-6 text-2xl font-serif font-bold text-wedding-gold">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 relative">
+                    <div className="relative z-10 flex flex-col items-center text-center p-6 bg-white/40 rounded-3xl border border-wedding-gold/10 hover:shadow-lg transition-all duration-300">
+                        <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center border border-wedding-navy/10 shadow-xl mb-6 text-xl font-serif font-bold text-wedding-gold">
                             1
                         </div>
-                        <h4 className="text-xl font-serif font-bold text-wedding-navy mb-3">Inscription</h4>
-                        <p className="text-wedding-navy/60 font-medium text-sm leading-relaxed">Remplissez votre profil en détail et de manière confidentielle. Exprimez vos attentes et vos valeurs.</p>
+                        <h4 className="text-lg font-serif font-bold text-wedding-navy mb-3">Inscription</h4>
+                        <p className="text-wedding-navy/60 font-medium text-[13px] leading-relaxed">Vous complétez votre profil avec les informations nécessaires pour permettre une compréhension précise de vos attentes.</p>
                     </div>
 
-                    <div className="relative z-10 flex flex-col items-center text-center p-6">
-                        <div className="w-20 h-20 bg-white rounded-2xl flex items-center justify-center border border-wedding-navy/10 shadow-xl mb-6 text-2xl font-serif font-bold text-wedding-gold">
+                    <div className="relative z-10 flex flex-col items-center text-center p-6 bg-white/40 rounded-3xl border border-wedding-gold/10 hover:shadow-lg transition-all duration-300">
+                        <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center border border-wedding-navy/10 shadow-xl mb-6 text-xl font-serif font-bold text-wedding-gold">
                             2
                         </div>
-                        <h4 className="text-xl font-serif font-bold text-wedding-navy mb-3">Attribution Shadchan</h4>
-                        <p className="text-wedding-navy/60 font-medium text-sm leading-relaxed">Choisissez un Shadchan parmi notre équipe ou laissez-nous vous attribuer le plus adapté à votre recherche.</p>
+                        <h4 className="text-lg font-serif font-bold text-wedding-navy mb-3">Analyse personnalisée</h4>
+                        <p className="text-wedding-navy/60 font-medium text-[13px] leading-relaxed">Notre équipe étudie votre profil de manière confidentielle afin d’identifier des propositions pertinentes.</p>
                     </div>
 
-                    <div className="relative z-10 flex flex-col items-center text-center p-6">
-                        <div className="w-20 h-20 bg-white rounded-2xl flex items-center justify-center border border-wedding-navy/10 shadow-xl mb-6 text-2xl font-serif font-bold text-wedding-gold">
+                    <div className="relative z-10 flex flex-col items-center text-center p-6 bg-white/40 rounded-3xl border border-wedding-gold/10 hover:shadow-lg transition-all duration-300">
+                        <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center border border-wedding-navy/10 shadow-xl mb-6 text-xl font-serif font-bold text-wedding-gold">
                             3
                         </div>
-                        <h4 className="text-xl font-serif font-bold text-wedding-navy mb-3">Propositions et Rencontres</h4>
-                        <p className="text-wedding-navy/60 font-medium text-sm leading-relaxed">Échangez avec votre Shadchan, recevez des propositions ciblées et commencez vos rencontres.</p>
+                        <h4 className="text-lg font-serif font-bold text-wedding-navy mb-3">Propositions adaptées</h4>
+                        <p className="text-wedding-navy/60 font-medium text-[13px] leading-relaxed">Des personnes dédiées vous contactent avec des suggestions correspondant réellement à votre profil.</p>
+                    </div>
+
+                    <div className="relative z-10 flex flex-col items-center text-center p-6 bg-white/40 rounded-3xl border border-wedding-gold/10 hover:shadow-lg transition-all duration-300">
+                        <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center border border-wedding-navy/10 shadow-xl mb-6 text-xl font-serif font-bold text-wedding-gold">
+                            4
+                        </div>
+                        <h4 className="text-lg font-serif font-bold text-wedding-navy mb-3">Accompagnement continu</h4>
+                        <p className="text-wedding-navy/60 font-medium text-[13px] leading-relaxed">Nous restons disponibles pour vous accompagner, répondre aux questions et faciliter les démarches.</p>
                     </div>
                 </div>
             </section>
@@ -248,49 +257,77 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
                 </div>
             </section>
 
-            {/* Nos Rabbanim Section */}
+            {/* Un accompagnement par des Rabbanim Section */}
             <section className="w-full max-w-5xl mx-auto px-6 py-24 animate-fade-in border-t border-wedding-gold/10 relative z-10">
                 <div className="text-center mb-16">
                     <h2 className="text-4xl font-serif font-bold text-wedding-navy tracking-tight mb-4">
-                        Nos Rabbanim
+                        Accompagnement Rabbanim
                     </h2>
-                    <p className="text-wedding-gold font-serif italic text-xl">Le soutien spirituel de notre communauté</p>
+                    <p className="text-wedding-gold font-serif italic text-xl">Le soutien spirituel de Torah</p>
                     <div className="w-24 h-px bg-wedding-gold/30 mx-auto mt-6"></div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
-                    <div className="glass-card p-10 rounded-3xl border-wedding-gold/10 text-center group hover:-translate-y-2 transition-all duration-500 shadow-xl shadow-wedding-navy/5">
-                        <Quote className="w-8 h-8 text-wedding-gold/20 mx-auto mb-6 group-hover:text-wedding-gold transition-colors" />
-                        <h4 className="text-xl font-serif font-bold text-wedding-navy mb-2">Rav À compléter</h4>
-                        <div className="text-[10px] font-bold text-wedding-gold uppercase tracking-[0.2em] mb-4">Fonction à définir</div>
-                        <p className="text-sm text-wedding-navy/60 italic leading-relaxed">
-                            "Citation ou message de soutien à venir..."
-                        </p>
-                    </div>
-
-                    <div className="glass-card p-10 rounded-3xl border-wedding-gold/10 text-center group hover:-translate-y-2 transition-all duration-500 shadow-xl shadow-wedding-navy/5">
-                        <Quote className="w-8 h-8 text-wedding-gold/20 mx-auto mb-6 group-hover:text-wedding-gold transition-colors" />
-                        <h4 className="text-xl font-serif font-bold text-wedding-navy mb-2">Rav À compléter</h4>
-                        <div className="text-[10px] font-bold text-wedding-gold uppercase tracking-[0.2em] mb-4">Fonction à définir</div>
-                        <p className="text-sm text-wedding-navy/60 italic leading-relaxed">
-                            "Citation ou message de soutien à venir..."
-                        </p>
-                    </div>
-
-                    <div className="glass-card p-10 rounded-3xl border-wedding-gold/10 text-center group hover:-translate-y-2 transition-all duration-500 shadow-xl shadow-wedding-navy/5">
-                        <Quote className="w-8 h-8 text-wedding-gold/20 mx-auto mb-6 group-hover:text-wedding-gold transition-colors" />
-                        <h4 className="text-xl font-serif font-bold text-wedding-navy mb-2">Rav À compléter</h4>
-                        <div className="text-[10px] font-bold text-wedding-gold uppercase tracking-[0.2em] mb-4">Fonction à définir</div>
-                        <p className="text-sm text-wedding-navy/60 italic leading-relaxed">
-                            "Citation ou message de soutien à venir..."
-                        </p>
+                <div className="glass-card p-12 md:p-16 rounded-[4rem] border-wedding-gold/10 shadow-2xl relative overflow-hidden mb-16">
+                    <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+                        <div>
+                            <p className="text-lg text-wedding-navy/80 leading-relaxed mb-8">
+                                Parce que les décisions liées au mariage sont importantes, nous avons mis en place une ligne téléphonique permettant de consulter des Rabbanim expérimentés.
+                            </p>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div className="flex items-center gap-3 p-4 bg-white/50 rounded-2xl border border-wedding-gold/10">
+                                    <Stars className="w-5 h-5 text-wedding-gold" />
+                                    <span className="text-sm font-medium">Conseils avisés</span>
+                                </div>
+                                <div className="flex items-center gap-3 p-4 bg-white/50 rounded-2xl border border-wedding-gold/10">
+                                    <Stars className="w-5 h-5 text-wedding-gold" />
+                                    <span className="text-sm font-medium">Orientation adaptée</span>
+                                </div>
+                                <div className="flex items-center gap-3 p-4 bg-white/50 rounded-2xl border border-wedding-gold/10">
+                                    <Stars className="w-5 h-5 text-wedding-gold" />
+                                    <span className="text-sm font-medium">Regard de Torah</span>
+                                </div>
+                                <div className="flex items-center gap-3 p-4 bg-white/50 rounded-2xl border border-wedding-gold/10">
+                                    <Stars className="w-5 h-5 text-wedding-gold" />
+                                    <span className="text-sm font-medium">Aide à la décision</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="text-center p-8 bg-wedding-navy rounded-[3rem] text-white">
+                            <p className="text-xl font-serif italic mb-4">"Être guidé par des personnes de Torah apporte clarté, recul et sérénité dans le processus."</p>
+                        </div>
                     </div>
                 </div>
 
-                <div className="mt-12 md:mt-20 text-center italic text-wedding-navy/40 text-[10px] md:text-xs tracking-widest uppercase font-bold">
-                    Sous la direction halakhique de nos maîtres
+                <div className="text-center mb-16">
+                    <h2 className="text-3xl font-serif font-bold text-wedding-navy mb-2">Nos Engagements</h2>
+                    <div className="w-16 h-px bg-wedding-gold/30 mx-auto mb-10"></div>
                 </div>
 
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {[
+                        "Cadre sérieux et strictement confidentiel",
+                        "Propositions adaptées et réfléchies",
+                        "Accompagnement humain et professionnel",
+                        "Accès à des conseils de Rabbanim",
+                        "Valeurs fondées sur la Torah",
+                        "Discrétion et professionnalisme"
+                    ].map((engagement, idx) => (
+                        <div key={idx} className="flex items-center gap-4 p-5 bg-white/40 rounded-2xl border border-wedding-navy/5 shadow-sm">
+                            <ShieldCheck className="w-6 h-6 text-wedding-gold shrink-0" />
+                            <span className="text-sm font-semibold text-wedding-navy/80">{engagement}</span>
+                        </div>
+                    ))}
+                </div>
+
+                <div className="mt-24 text-center">
+                    <div className="inline-block p-10 bg-white/60 backdrop-blur-md rounded-[3rem] border border-wedding-gold/20 shadow-xl max-w-2xl">
+                        <h3 className="text-2xl font-serif font-bold text-wedding-navy mb-4">Notre Souhait</h3>
+                        <p className="text-lg text-wedding-navy/70 italic leading-relaxed">
+                            Notre ambition est de permettre à chacun d’avancer vers le mariage avec confiance, sérénité et accompagnement, בעזרת ה׳, jusqu’à la construction d’un foyer fidèle à la Torah.
+                        </p>
+                        <p className="mt-6 font-bold text-wedding-gold uppercase tracking-widest text-sm">Nous vous souhaitons beaucoup de réussite</p>
+                    </div>
+                </div>
             </section>
 
             {/* Nous Contacter Section */}
