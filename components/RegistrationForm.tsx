@@ -19,7 +19,8 @@ const STEPS = [
   { id: 4, title: 'Vision', description: 'Ambitions & Kehila' },
   { id: 5, title: 'Moi', description: 'Description personnelle' },
   { id: 6, title: 'Recherche', description: 'Profil recherché' },
-  { id: 7, title: 'Finalisation', description: 'Accès & Shadchan' }
+  { id: 7, title: 'Finalisation', description: 'Accès & Shadchan' },
+  { id: 8, title: 'Engagement', description: 'Don' }
 ];
 
 const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSave, onCancel, initialData, onLoginClick }) => {
@@ -28,7 +29,8 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSave, onCancel, i
     gender: Gender.MALE,
     religiousLevel: ReligiousLevel.YESHIVISH,
     photos: [],
-    references: []
+    references: [],
+    agreedToDonation: false // New field for donation agreement
   });
   const [isUploading, setIsUploading] = useState(false);
   const [shadchansList, setShadchansList] = useState<any[]>([]);
@@ -100,6 +102,8 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSave, onCancel, i
         return !!(formData.searchFamily && formData.searchClothing && formData.searchPhone && formData.searchTraits && formData.searchPriorities && formData.lookingFor);
       case 7:
         return !!(formData.email && formData.accessCode && isValidEmail(formData.email) && formData.ravYeshiva && formData.ravKehila);
+      case 8:
+        return !!formData.agreedToDonation;
       default:
         return false;
     }
@@ -109,6 +113,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSave, onCancel, i
     if (!validateStep(currentStep)) {
       let msg = "Veuillez remplir les champs obligatoires (*) avec des informations valides.";
       if (currentStep === 7 && formData.email && !isValidEmail(formData.email)) msg = "L'adresse email n'est pas valide.";
+      if (currentStep === 8 && !formData.agreedToDonation) msg = "Veuillez confirmer votre engagement pour finaliser votre inscription.";
       alert(msg);
       return;
     }
@@ -128,9 +133,12 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSave, onCancel, i
 
   const handleSubmit = () => {
     if (!validateStep(STEPS.length)) {
-      alert("Veuillez vérifier vos accès (Email et Code).");
+      alert("Veuillez confirmer votre engagement avant de finaliser.");
       return;
     }
+
+    // Redirect to donation page in a new tab
+    window.open('https://bneiyeshivot.com/don', '_blank');
 
     const newProfile: Profile = {
       ...formData,
@@ -1007,7 +1015,51 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSave, onCancel, i
                     <div className="bg-wedding-navy/5 p-6 rounded-3xl border border-wedding-gold/20 flex gap-4">
                       <Info className="w-6 h-6 text-wedding-gold shrink-0" />
                       <p className="text-[10px] text-wedding-navy/60 leading-relaxed font-medium">
-                        En validant votre inscription, vous rejoignez la communauté Binian Adei Ad. Vos informations sont traitées avec la plus grande discrétion par nos Shadchanim.
+                        Vos informations sont traitées avec la plus grande discrétion par nos Shadchanim.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {currentStep === 8 && (
+                <div className="space-y-10 animate-fade-in">
+                  <div className="flex items-center gap-5">
+                    <div className="w-16 h-16 bg-wedding-navy rounded-2xl flex items-center justify-center shadow-xl">
+                      <Heart className="w-8 h-8 text-wedding-gold" />
+                    </div>
+                    <div>
+                      <h3 className="text-3xl font-serif font-bold text-wedding-navy">Engagement</h3>
+                      <p className="text-wedding-navy/40 text-sm font-medium italic">Soutenez Binian Adei Ad.</p>
+                    </div>
+                  </div>
+
+                  <div className="bg-white p-8 rounded-3xl border border-wedding-navy/10 shadow-sm space-y-6">
+                    <h4 className="text-xl font-serif font-bold text-wedding-navy">Soutien à l'Association</h4>
+                    <p className="text-sm text-wedding-navy/80 leading-relaxed">
+                      La plateforme <strong>Binian Adei Ad</strong> est un service gratuit, porté par le dévouement de nos Shadchanim bénévoles qui investissent leur temps et leur énergie pour vous accompagner.
+                    </p>
+                    <p className="text-sm text-wedding-navy/80 leading-relaxed">
+                      Afin de soutenir notre action et de nous permettre de continuer à développer ce service pour le Klal Yisrael, nous vous demandons de vous engager à faire un don symbolique (à votre discrétion) à l'association <strong>Bnei Yeshivot</strong>.
+                    </p>
+
+                    <div className="bg-wedding-navy/5 p-6 rounded-2xl border border-wedding-gold/20 mt-6">
+                      <label className="flex items-start gap-4 cursor-pointer">
+                        <div className="relative flex items-center justify-center h-6 w-6 mt-0.5">
+                          <input
+                            type="checkbox"
+                            className="peer w-6 h-6 appearance-none border-2 border-wedding-navy/20 rounded-lg checked:bg-wedding-navy checked:border-wedding-navy transition-colors cursor-pointer"
+                            checked={!!formData.agreedToDonation}
+                            onChange={(e) => setFormData({ ...formData, agreedToDonation: e.target.checked })}
+                          />
+                          <Check className="w-4 h-4 text-white absolute pointer-events-none opacity-0 peer-checked:opacity-100 transition-opacity" />
+                        </div>
+                        <span className="text-sm font-bold text-wedding-navy">
+                          Je m'engage à faire un don à Bnei Yeshivot pour soutenir l'action des Shadchanim de Binian Adei Ad.*
+                        </span>
+                      </label>
+                      <p className="text-[10px] text-wedding-navy/50 italic mt-3 ml-10">
+                        * En finalisant votre inscription, vous serez redirigé vers la page de don sécurisée.
                       </p>
                     </div>
                   </div>

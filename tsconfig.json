@@ -25,5 +25,11 @@
     },
     "allowImportingTsExtensions": true,
     "noEmit": true
-  }
+  },
+  "include": ["src", "components", "pages", "services", "types", "types.ts", "vite-env.d.ts", "main.tsx", "App.tsx", "**/*.ts", "**/*.tsx"],
+  "exclude": [
+    "node_modules",
+    "supabase",
+    "dist"
+  ]
 }
