@@ -50,7 +50,7 @@ serve(async (req) => {
         'Authorization': `Bearer ${RESEND_API_KEY}`
       },
       body: JSON.stringify({
-        from: 'Shidduch Connect <contact@votrenomdedomaine.com>', // MUST BE verified in Resend
+        from: 'Shidduch Connect <contact@binianadeiad.com>', // MUST BE verified in Resend
         to: email,
         subject: 'Votre code d\'accès secret - Shidduch Connect',
         html: `
