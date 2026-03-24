@@ -107,7 +107,7 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
                 </div>
 
                 <p className="text-lg md:text-xl text-wedding-navy/80 font-serif italic mb-12 max-w-3xl mx-auto leading-relaxed">
-                    "Notre mission est d’accompagner chaque jeune avec sérieux, discrétion et professionnalisme dans cette démarche essentielle."
+                    "Notre force : bien plus qu'un chiddoukh : un accompagnement sérieux, discret et structuré à chaque étape, encadré par des Rabbanim et des Avrechim reconnus pour leur qualité."
                 </p>
 
                 {/* Actions */}
@@ -227,33 +227,6 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
                         <h4 className="text-lg font-serif font-bold text-wedding-navy mb-3">Accompagnement continu</h4>
                         <p className="text-wedding-navy/60 font-medium text-[13px] leading-relaxed">Nous restons disponibles pour vous accompagner, répondre aux questions et faciliter les démarches.</p>
                     </div>
-                </div>
-            </section>
-
-            {/* Nos Shadchanims Section */}
-            <section id="shadchanims" className="w-full max-w-6xl mx-auto px-6 py-24 animate-fade-in border-t border-wedding-gold/10 relative z-10">
-                <div className="text-center mb-16">
-                    <h2 className="text-4xl font-serif font-bold text-wedding-navy tracking-tight mb-4">
-                        Nos Shadchanims
-                    </h2>
-                    <p className="text-wedding-gold font-serif italic text-xl">Une équipe dévouée pour vous accompagner</p>
-                    <div className="w-24 h-px bg-wedding-gold/30 mx-auto mt-6"></div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
-                    {shadchansList.length > 0 ? shadchansList.map((shadchan) => (
-                        <div key={shadchan.id} className="glass-card p-6 rounded-3xl border border-wedding-navy/5 text-center group hover:-translate-y-2 transition-all duration-300 shadow-xl shadow-wedding-navy/5 bg-white/50">
-                            <div className="w-24 h-24 mx-auto rounded-full bg-cover bg-center border-4 border-white shadow-lg mb-4" style={{ backgroundImage: `url(${shadchan.image_url || '/placeholder-avatar.png'})`, backgroundColor: shadchan.image_url ? 'transparent' : '#f3f4f6' }}>
-                                {!shadchan.image_url && <User className="w-10 h-10 text-wedding-navy/20 m-auto mt-6" />}
-                            </div>
-                            <h4 className="text-lg font-serif font-bold text-wedding-navy mb-1 group-hover:text-wedding-gold transition-colors">{shadchan.name}</h4>
-                            {shadchan.speciality && <span className="text-[10px] font-bold text-wedding-gold uppercase tracking-wider">{shadchan.speciality}</span>}
-                        </div>
-                    )) : (
-                        <div className="col-span-full text-center text-wedding-navy/50 font-medium italic py-10">
-                            Chargement de l'équipe...
-                        </div>
-                    )}
                 </div>
             </section>
 

@@ -31,7 +31,7 @@ const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate, darkMode, togg
             <div className="max-w-6xl mx-auto">
                 <div className="flex justify-between h-20 items-center">
                     <div className="flex items-center cursor-pointer group" onClick={() => onNavigate('home')}>
-                        <img src="/assets/images/logo.png" alt="Logo" className="w-10 h-10 md:w-16 md:h-16 object-contain mr-2 md:mr-3 transition-transform duration-300 group-hover:scale-105" />
+                        <img src="/logo-transparent.png" alt="Logo Binian Adei Ad" className="w-10 h-10 md:w-16 md:h-16 object-contain mr-2 md:mr-3 transition-transform duration-300 group-hover:scale-105" />
 
                         <span className="font-serif text-lg md:text-2xl font-bold text-wedding-navy tracking-tight md:tracking-luxury flex flex-col md:flex-row md:items-baseline md:gap-2">
                             Binian Adei Ad
@@ -40,14 +40,7 @@ const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate, darkMode, togg
                     </div>
                     <div className="flex items-center space-x-2 md:space-x-6">
 
-                        <button
-                            onClick={handleShadchanimClick}
-                            className="hidden sm:block text-[10px] md:text-xs font-bold tracking-widest uppercase transition-colors text-wedding-navy/60 hover:text-wedding-navy"
-                        >
-                            Nos Shadchanims
-                        </button>
 
-                        <div className="hidden sm:block h-4 w-px bg-wedding-navy/10 mx-1 md:mx-2"></div>
 
                         <button
                             onClick={() => onNavigate('dashboard')}
