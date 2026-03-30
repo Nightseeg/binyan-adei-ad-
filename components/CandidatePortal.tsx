@@ -90,7 +90,7 @@ const CandidatePortal: React.FC<CandidatePortalProps> = ({ candidate, onLogout, 
     };
 
     const handleSendMessage = async () => {
-        if (!newMessage.trim()) return;
+        if (!newMessage.trim() || !candidate.assignedShadchanId) return;
         setIsLoading(true);
         try {
             await api.sendMessage({
@@ -256,14 +256,14 @@ const CandidatePortal: React.FC<CandidatePortalProps> = ({ candidate, onLogout, 
                                     type="text"
                                     value={newMessage}
                                     onChange={(e) => setNewMessage(e.target.value)}
-                                    placeholder={(!shadchanProfile && messages.length === 0) ? "Messagerie indisponible..." : "Écrivez votre message..."}
-                                    disabled={isLoading}
+                                    placeholder={(!shadchanProfile && messages.length === 0) || !candidate.assignedShadchanId ? "Messagerie indisponible..." : "Écrivez votre message..."}
+                                    disabled={isLoading || !candidate.assignedShadchanId}
                                     className="flex-1 px-4 md:px-6 py-3 md:py-4 bg-wedding-navy/5 border border-wedding-navy/10 rounded-2xl focus:outline-none focus:border-wedding-gold transition-all font-medium text-sm md:text-base text-wedding-navy placeholder:text-wedding-navy/30 disabled:opacity-50 disabled:cursor-not-allowed"
                                     onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
                                 />
                                 <button
                                     onClick={handleSendMessage}
-                                    disabled={isLoading || !newMessage.trim()}
+                                    disabled={isLoading || !newMessage.trim() || !candidate.assignedShadchanId}
                                     className="p-3 md:p-4 bg-wedding-navy text-wedding-gold rounded-2xl hover:bg-wedding-navy/90 transition-all shadow-xl shadow-wedding-navy/20 disabled:opacity-50 disabled:cursor-not-allowed transform hover:-translate-y-1"
                                 >
                                     {isLoading ? <Loader2 className="w-5 h-5 md:w-6 md:h-6 animate-spin" /> : <Send className="w-5 h-5 md:w-6 md:h-6" />}
@@ -362,6 +362,31 @@ const CandidatePortal: React.FC<CandidatePortalProps> = ({ candidate, onLogout, 
                                 className="mt-8 w-full py-4 bg-white text-wedding-navy rounded-2xl font-bold uppercase tracking-widest text-xs hover:bg-wedding-navy/5 transition-all shadow-sm active:scale-95 border border-wedding-navy/10 mb-3"
                             >
                                 Changer de Shadchan
+                            </button>
+
+                            <button
+                                onClick={async () => {
+                                    if (window.confirm("Êtes-vous sûr de vouloir mettre fin à la discussion avec ce Shadchan ? Votre profil redeviendra disponible pour les autres.")) {
+                                        setIsUpdatingShadchan(true);
+                                        try {
+                                            const updatedProfile = await api.updateProfile({ 
+                                                ...candidate, 
+                                                assignedShadchanId: null 
+                                            } as Profile);
+                                            onUpdateProfile(updatedProfile);
+                                            setShowShadchanDetails(false);
+                                            alert("Discussion terminée. Vous pouvez maintenant choisir un nouveau Shadchan ou attendre d'être contacté.");
+                                        } catch (error) {
+                                            console.error("Erreur lors de la fin de discussion:", error);
+                                            alert("Erreur lors de l'opération.");
+                                        } finally {
+                                            setIsUpdatingShadchan(false);
+                                        }
+                                    }
+                                }}
+                                className="w-full py-4 bg-red-50 text-red-600 rounded-2xl font-bold uppercase tracking-widest text-xs hover:bg-red-100 transition-all shadow-sm active:scale-95 border border-red-200 mb-3"
+                            >
+                                Mettre fin à la discussion
                             </button>
 
                             <button

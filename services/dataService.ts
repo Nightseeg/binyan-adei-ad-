@@ -81,29 +81,40 @@ const mapProfileFromDB = (p: any): Profile => ({
     lookingForJob: p.looking_for_job,
     lookingForHashkafa: p.looking_for_hashkafa,
     lookingForYiratShamayim: p.looking_for_yirat_shamayim,
+    agreedToTerms: p.agreed_to_terms,
 });
 
 const mapProfileToDB = (p: Partial<Profile>) => {
-    const dbProfile: any = { ...p };
+    // Explicitly map only the columns that exist in the database
+    const dbProfile: any = {};
+    
+    if (p.id) dbProfile.id = p.id;
     if (p.firstName) dbProfile.first_name = p.firstName;
     if (p.lastName) dbProfile.last_name = p.lastName;
+    if (p.age) dbProfile.age = p.age;
+    if (p.gender) dbProfile.gender = p.gender;
+    if (p.city) dbProfile.city = p.city;
+    if (p.occupation) dbProfile.occupation = p.occupation;
+    if (p.height) dbProfile.height = p.height;
+    if (p.religiousLevel) dbProfile.religious_level = p.religiousLevel;
     if (p.aboutMe) dbProfile.about_me = p.aboutMe;
     if (p.lookingFor) dbProfile.looking_for = p.lookingFor;
     if (p.contactPhone) dbProfile.contact_phone = p.contactPhone;
+    if (p.email) dbProfile.email = p.email;
+    if (p.accessCode) dbProfile.access_code = p.accessCode;
     if (p.imageUrl) dbProfile.image_url = p.imageUrl;
+    if (p.photos) dbProfile.photos = p.photos;
     if (p.createdAt) dbProfile.created_at = p.createdAt;
     if (p.isFavorite !== undefined) dbProfile.is_favorite = p.isFavorite;
     if (p.privateNotes) dbProfile.private_notes = p.privateNotes;
+    if (p.tags) dbProfile.tags = p.tags;
     if (p.interactionHistory) dbProfile.interaction_history = p.interactionHistory;
     if (p.references) dbProfile.references = p.references;
     if (p.documents) dbProfile.documents = p.documents;
+    if (p.languages) dbProfile.languages = p.languages;
     if (p.aliyahStatus) dbProfile.aliyah_status = p.aliyahStatus;
     if (p.familyBackground) dbProfile.family_background = p.familyBackground;
     if (p.locationRadius) dbProfile.location_radius = p.locationRadius;
-    if (p.religiousLevel) dbProfile.religious_level = p.religiousLevel;
-    if (p.email) dbProfile.email = p.email;
-    if (p.accessCode) dbProfile.access_code = p.accessCode;
-    if (p.tags) dbProfile.tags = p.tags;
     if (p.assignedShadchanId) dbProfile.assigned_shadchan_id = p.assignedShadchanId;
     if (p.birthDate) dbProfile.birth_date = p.birthDate;
     if (p.fatherName) dbProfile.father_name = p.fatherName;
@@ -152,89 +163,13 @@ const mapProfileToDB = (p: Partial<Profile>) => {
     if (p.bodyType) dbProfile.body_type = p.bodyType;
     if (p.headCoveringPreference) dbProfile.head_covering_preference = p.headCoveringPreference;
     if (p.lastActiveAt) dbProfile.last_active_at = p.lastActiveAt;
-
     if (p.nusach) dbProfile.nusach = p.nusach;
     if (p.searchNusach) dbProfile.search_nusach = p.searchNusach;
     if (p.searchSocial) dbProfile.search_social = p.searchSocial;
     if (p.lookingForJob) dbProfile.looking_for_job = p.lookingForJob;
     if (p.lookingForHashkafa) dbProfile.looking_for_hashkafa = p.lookingForHashkafa;
     if (p.lookingForYiratShamayim) dbProfile.looking_for_yirat_shamayim = p.lookingForYiratShamayim;
-    
-    // Remove camelCase keys to be clean (optional but good)
-    delete dbProfile.firstName;
-    delete dbProfile.lastName;
-    delete dbProfile.aboutMe;
-    delete dbProfile.lookingFor;
-    delete dbProfile.contactPhone;
-    delete dbProfile.imageUrl;
-    delete dbProfile.createdAt;
-    delete dbProfile.isFavorite;
-    delete dbProfile.privateNotes;
-    delete dbProfile.interactionHistory;
-    delete dbProfile.aliyahStatus;
-    delete dbProfile.familyBackground;
-    delete dbProfile.locationRadius;
-    delete dbProfile.locationRadius;
-    delete dbProfile.religiousLevel;
-    // delete dbProfile.email; // KEEP THIS! It matches the DB column.
-    delete dbProfile.accessCode;
-    delete dbProfile.tags;
-    delete dbProfile.assignedShadchanId;
-    delete dbProfile.birthDate;
-    delete dbProfile.fatherName;
-    delete dbProfile.motherName;
-    delete dbProfile.fatherPhone;
-    delete dbProfile.motherPhone;
-    delete dbProfile.educationalPath;
-    delete dbProfile.familyDescription;
-    delete dbProfile.ambitions;
-    delete dbProfile.community;
-    delete dbProfile.selfDescription;
-    delete dbProfile.rabbanimContacts;
-    delete dbProfile.primarySchool;
-    delete dbProfile.middleSchool;
-    delete dbProfile.highSchool;
-    delete dbProfile.ravYeshiva;
-    delete dbProfile.ravKehila;
-    delete dbProfile.yeshivaKtana;
-    delete dbProfile.yeshivaGdola;
-    delete dbProfile.currentOccupation;
-    delete dbProfile.qualifications;
-    delete dbProfile.isSmoking;
-    delete dbProfile.smokingDetails;
-    delete dbProfile.skinColor;
-    delete dbProfile.eyeColor;
-    delete dbProfile.hairColor;
-    delete dbProfile.ambitionCareer;
-    delete dbProfile.ambitionLocation;
-    delete dbProfile.personalTraits;
-    delete dbProfile.personalClothing;
-    delete dbProfile.personalPhone;
-    delete dbProfile.searchFamily;
-    delete dbProfile.searchClothing;
-    delete dbProfile.searchPhone;
-    delete dbProfile.searchTraits;
-    delete dbProfile.searchPriorities;
-    delete dbProfile.personalTraitsDetails;
-    delete dbProfile.personalClothingDetails;
-    delete dbProfile.personalPhoneDetails;
-    delete dbProfile.searchFamilyDetails;
-    delete dbProfile.searchClothingDetails;
-    delete dbProfile.searchPhoneDetails;
-    delete dbProfile.searchPhoneDetails;
-    delete dbProfile.searchTraitsDetails;
-    delete dbProfile.searchPrioritiesDetails;
-    delete dbProfile.parentsOrigin;
-    delete dbProfile.bodyType;
-    delete dbProfile.headCoveringPreference;
-    delete dbProfile.lastActiveAt;
-
-    delete dbProfile.nusach;
-    delete dbProfile.searchNusach;
-    delete dbProfile.searchSocial;
-    delete dbProfile.lookingForJob;
-    delete dbProfile.lookingForHashkafa;
-    delete dbProfile.lookingForYiratShamayim;
+    if (p.agreedToTerms !== undefined) dbProfile.agreed_to_terms = p.agreedToTerms;
 
     return dbProfile;
 };
@@ -276,6 +211,23 @@ export const api = {
         const dbProfile = mapProfileToDB(sanitized);
         const { data, error } = await supabase.from('profiles').insert(dbProfile).select().single();
         if (error) throw error;
+
+        // Send email notification to admin (fire and forget)
+        console.log("Triggering notification for:", profile.email);
+        supabase.functions.invoke('notify-registration', {
+            body: {
+                firstName: profile.firstName,
+                lastName: profile.lastName,
+                gender: profile.gender,
+                city: profile.city,
+                email: profile.email,
+                phone: profile.contactPhone
+            }
+        }).then(({ data, error }) => {
+            if (error) console.error('Notification function error response:', error);
+            else console.log('Notification function success:', data);
+        }).catch(err => console.error('Notification invoke catch error:', err));
+
         return mapProfileFromDB(data);
     },
     updateProfile: async (profile: Profile) => {
@@ -332,6 +284,26 @@ export const api = {
         });
         if (error) throw error;
         return data;
+    },
+
+    checkEmailExists: async (email: string) => {
+        const { data, error } = await supabase
+            .from('profiles')
+            .select('email')
+            .eq('email', email.trim().toLowerCase())
+            .maybeSingle();
+        if (error) return false;
+        return !!data;
+    },
+
+    checkShadchanEmailExists: async (email: string) => {
+        const { data, error } = await supabase
+            .from('shadchan_profile')
+            .select('email')
+            .eq('email', email.trim().toLowerCase())
+            .maybeSingle();
+        if (error) return false;
+        return !!data;
     },
 
 
@@ -563,47 +535,5 @@ export const api = {
         return data;
     },
 
-    // Notifications
-    getNotifications: async () => {
-        const { data, error } = await supabase
-            .from('notifications')
-            .select('*')
-            .order('created_at', { ascending: false })
-            .limit(50);
-        if (error) throw error;
-        return data.map((n: any) => ({
-            id: n.id,
-            profileId: n.profile_id,
-            type: n.type,
-            content: n.content,
-            read: n.read,
-            createdAt: n.created_at
-        }));
-    },
-    markNotificationRead: async (id: string) => {
-        const { error } = await supabase
-            .from('notifications')
-            .update({ read: true })
-            .eq('id', id);
-        if (error) throw error;
-    },
-    markAllNotificationsRead: async () => {
-        const { error } = await supabase
-            .from('notifications')
-            .update({ read: true })
-            .eq('read', false);
-        if (error) throw error;
-    },
-    createNotification: async (notif: { profileId?: string, type: string, content: string }) => {
-        const { error } = await supabase
-            .from('notifications')
-            .insert({
-                profile_id: notif.profileId,
-                type: notif.type,
-                content: notif.content
-            });
-        if (error) {
-            console.error("Failed to create notification:", error);
-        }
-    }
+
 };

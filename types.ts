@@ -102,7 +102,7 @@ export interface Profile {
   lookingForJob?: string; // For boys asking about girls
   lookingForHashkafa?: string; // For boys asking about girls
   lookingForYiratShamayim?: string; // For boys asking about girls
-  agreedToDonation?: boolean; // Form transition step
+  agreedToTerms?: boolean; // Form transition step
 }
 
 export interface Reference {

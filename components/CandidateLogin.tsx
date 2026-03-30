@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { api } from '../services/dataService';
-import { Eye, EyeOff, LogIn, ArrowLeft } from 'lucide-react';
+import { Eye, EyeOff, LogIn, ArrowLeft, Loader2 } from 'lucide-react';
 import { Profile } from '../types';
 
 interface CandidateLoginProps {
@@ -23,28 +23,33 @@ const CandidateLogin: React.FC<CandidateLoginProps> = ({ onLoginSuccess, onCance
         setError('');
 
         try {
+            // Check if email exists first
+            const emailExists = await api.checkEmailExists(email);
+            if (!emailExists) {
+                setError("Aucun compte n'est associé à cette adresse email.");
+                return;
+            }
+
             // Set temporary access code to allow RLS during login check
             try {
                 localStorage.setItem('access_code', accessCode);
             } catch (e: any) {
                 if (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
-                    // For candidates, we can be a bit more automatic or just warn
                     localStorage.clear();
                     localStorage.setItem('access_code', accessCode);
                 }
             }
             const profile = await api.candidateLogin(email.toLowerCase().trim(), accessCode);
             if (profile) {
-                // Keep it on success
                 onLoginSuccess(profile);
             } else {
                 localStorage.removeItem('access_code');
-                setError("Profil non trouvé ou code incorrect.");
+                setError("Le code secret est incorrect.");
             }
         } catch (err) {
             localStorage.removeItem('access_code');
             console.error(err);
-            setError("Email ou code incorrect.");
+            setError("Erreur lors de la connexion. Veuillez réessayer.");
         } finally {
             setIsLoading(false);
         }
@@ -129,13 +134,23 @@ const CandidateLogin: React.FC<CandidateLoginProps> = ({ onLoginSuccess, onCance
                                 </div>
                             )}
 
-                            <button
-                                type="submit"
-                                disabled={isLoading}
-                                className="w-full py-3.5 bg-wedding-navy text-white rounded-xl font-bold shadow-xl hover:bg-wedding-navy/90 hover:-translate-y-0.5 disabled:opacity-70 transition-all flex items-center justify-center gap-2 border border-wedding-navy"
-                            >
-                                {isLoading ? 'Authentification...' : 'Accéder mon espace'}
-                            </button>
+                            <div className="flex flex-col items-center gap-6">
+                        <button
+                            type="submit"
+                            disabled={isLoading}
+                            className="w-full bg-wedding-navy text-white rounded-xl py-4 font-bold uppercase tracking-widest shadow-xl shadow-wedding-navy/20 hover:bg-wedding-navy/90 hover:-translate-y-1 transition-all disabled:opacity-50 flex items-center justify-center gap-2 border border-wedding-gold/20"
+                        >
+                            {isLoading ? (
+                                <Loader2 className="w-5 h-5 animate-spin" />
+                            ) : (
+                                "SE CONNECTER"
+                            )}
+                        </button>
+
+                        <p className="text-[10px] text-wedding-navy/50 font-medium italic text-center max-w-[250px]">
+                            Si vous avez oublié votre mot de passe, Merci de nous contacter à l'adresse email suivante: <span className="text-wedding-navy font-bold">binadeiad@gmail.com</span>
+                        </p>
+                    </div>
                         </form>
                     ) : (
                         <form onSubmit={handleForgotPassword} className="space-y-6">

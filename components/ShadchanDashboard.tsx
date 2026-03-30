@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Profile, Gender, ReligiousLevel, Match, MatchStatus, Task } from '../types';
 
-import { Users, User, Sparkles, Loader2, Phone, Search, MapPin, Briefcase, Ruler, Heart, X, ArrowUpDown, Kanban, LayoutGrid, Star, Save, Plus, Tag, CheckSquare, FileText, Check, Trash2, Copy, Activity, Bell, Clock, Square, CheckCircle2, ChevronLeft, ChevronRight, Eye, EyeOff, Upload, Zap, Mail, MessageCircle, Send, Settings, Menu, LogOut, Calendar, GraduationCap } from 'lucide-react';
+import { Users, User, Sparkles, Loader2, Phone, Search, MapPin, Briefcase, Ruler, Heart, X, ArrowUpDown, Kanban, LayoutGrid, Star, Save, Plus, Tag, CheckSquare, FileText, Check, Trash2, Copy, Activity, Clock, Square, CheckCircle2, ChevronLeft, ChevronRight, Eye, EyeOff, Upload, Zap, Mail, MessageCircle, Send, Settings, Menu, LogOut, Calendar, GraduationCap } from 'lucide-react';
 import MatchPipeline from './MatchPipeline';
 import { v4 as uuidv4 } from 'uuid';
 import { api } from '../services/dataService';
@@ -55,7 +55,7 @@ const ShadchanDashboard: React.FC<ShadchanDashboardProps> = ({ profiles: allProf
   const [unreadCount, setUnreadCount] = useState(0);
   const [chatSearchQuery, setChatSearchQuery] = useState('');
   const [sendingMessage, setSendingMessage] = useState(false);
-  const [showNotificationCenter, setShowNotificationCenter] = useState(false);
+
   const [idsWithMessages, setIdsWithMessages] = useState<string[]>([]);
   const [dynamicInsights, setDynamicInsights] = useState<any[]>([]);
 
@@ -64,16 +64,14 @@ const ShadchanDashboard: React.FC<ShadchanDashboardProps> = ({ profiles: allProf
   /* New state for detailed unread counts */
   const [unreadCountsByUser, setUnreadCountsByUser] = useState<Record<string, number>>({});
 
+  // Use a ref to access latest profiles and matches without re-triggering useEffects
+  const stateRef = useRef({ profiles, matches, shadchanProfile });
+  useEffect(() => {
+    stateRef.current = { profiles, matches, shadchanProfile };
+  }, [profiles, matches, shadchanProfile]);
+
   const fetchUnreadCount = async () => {
     try {
-      // Get global count
-      const count = await api.getUnreadMessagesCount();
-      setUnreadCount(count);
-
-      // Get count per user (we need a new API method or just do a grouping query here if possible, 
-      // but sticking to existing patterns, we might need to fetch all unread messages and group them locally
-      // or add a specific RPC/query. For now, let's fetch all unread 'FROM_CANDIDATE' messages and group them.)
-
       const { data: unreadMsgs } = await supabase
         .from('messages')
         .select('profile_id')
@@ -81,13 +79,40 @@ const ShadchanDashboard: React.FC<ShadchanDashboardProps> = ({ profiles: allProf
         .eq('is_read', false);
 
       if (unreadMsgs) {
+        let visibleUnreadCount = 0;
         const counts: Record<string, number> = {};
+        const { profiles: currentProfiles, matches: currentMatches, shadchanProfile: currentShadchanProfile } = stateRef.current;
+        
         unreadMsgs.forEach((msg: any) => {
+          // Check if this profile is visible to this Shadchan
+          const p = currentProfiles.find(profile => profile.id === msg.profile_id);
+          if (!p) return; // Ignore messages from deleted or invisible profiles
+          
+          const isExclusivelyMatched = currentMatches.some(m =>
+            (m.boyId === p.id || m.girlId === p.id) &&
+            m.status !== MatchStatus.ARCHIVED &&
+            m.status !== MatchStatus.DROPPED &&
+            m.createdById !== undefined &&
+            m.createdById !== currentShadchanProfile?.id
+          );
+          
+          const isAssignedToOther = p.assignedShadchanId && 
+                                   currentShadchanProfile?.id && 
+                                   String(p.assignedShadchanId) !== String(currentShadchanProfile.id);
+                                   
+          // Skip if exclusively matched or assigned to another shadchan
+          if (isExclusivelyMatched || isAssignedToOther) return;
+          
           counts[msg.profile_id] = (counts[msg.profile_id] || 0) + 1;
+          visibleUnreadCount++;
         });
+        
         setUnreadCountsByUser(counts);
+        setUnreadCount(visibleUnreadCount);
+      } else {
+        setUnreadCountsByUser({});
+        setUnreadCount(0);
       }
-
     } catch (err) {
       console.error(err);
     }
@@ -107,16 +132,6 @@ const ShadchanDashboard: React.FC<ShadchanDashboardProps> = ({ profiles: allProf
           // If we are viewing a profile and a new message comes for it, reload
           if (currentView === 'messages' && chatProfile && payload.new.profile_id === chatProfile.id) {
             loadMessages(chatProfile.id);
-          } else {
-            // Create a notification if we are not actively chatting with this person
-            const sender = profiles.find(p => p.id === payload.new.profile_id);
-            if (sender) {
-              api.createNotification({
-                profileId: payload.new.profile_id,
-                type: 'MESSAGE_NEW',
-                content: `Nouveau message de ${sender.firstName}: "${payload.new.content.substring(0, 50)}..."`
-              }).catch(console.error);
-            }
           }
           // Also update the list of IDs with messages if it's a new one
           if (!idsWithMessages.includes(payload.new.profile_id)) {
@@ -220,32 +235,7 @@ const ShadchanDashboard: React.FC<ShadchanDashboardProps> = ({ profiles: allProf
     }
   };
 
-  const fetchNotifications = async () => {
-    try {
-      const data = await api.getNotifications();
-      setNotifications(data);
-    } catch (err) {
-      console.error("Failed to fetch notifications", err);
-    }
-  };
 
-  const handleMarkNotificationRead = async (id: string) => {
-    try {
-      await api.markNotificationRead(id);
-      setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const handleMarkAllNotificationsRead = async () => {
-    try {
-      await api.markAllNotificationsRead();
-      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-    } catch (err) {
-      console.error(err);
-    }
-  };
 
   // Matches State
   const [matches, setMatches] = useState<Match[]>([]);
@@ -288,9 +278,7 @@ const ShadchanDashboard: React.FC<ShadchanDashboardProps> = ({ profiles: allProf
   // Activity Feed State
   const [activities, setActivities] = useState<ActivityLog[]>([]);
 
-  // Notifications State
-  const [notifications, setNotifications] = useState<any[]>([]);
-  const unreadNotificationsCount = notifications.filter(n => !n.read).length;
+
 
   // Real-time Refs
   const chatProfileRef = useRef<Profile | null>(null);
@@ -344,22 +332,7 @@ const ShadchanDashboard: React.FC<ShadchanDashboardProps> = ({ profiles: allProf
           }
         }
       )
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'notifications' },
-        (payload) => {
-          const newNotif = payload.new;
-          const mapped = {
-            id: newNotif.id,
-            profileId: newNotif.profile_id,
-            type: newNotif.type,
-            content: newNotif.content,
-            read: newNotif.read,
-            createdAt: newNotif.created_at
-          };
-          setNotifications(prev => [mapped, ...prev]);
-        }
-      )
+
       .subscribe();
 
     return () => {
@@ -419,13 +392,12 @@ const ShadchanDashboard: React.FC<ShadchanDashboardProps> = ({ profiles: allProf
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [matchesData, tasksData, activitiesData, shadchanData, allShadchans, notifsData] = await Promise.all([
+        const [matchesData, tasksData, activitiesData, shadchanData, allShadchans] = await Promise.all([
           api.getMatches(),
           api.getTasks(),
           api.getActivities(),
           initialShadchan?.id ? api.getShadchanProfile(initialShadchan.id) : Promise.resolve(initialShadchan),
-          api.getShadchans(),
-          api.getNotifications()
+          api.getShadchans()
         ]);
 
         // Load ALL matches so we can filter candidate visibility across shadchans
@@ -447,7 +419,6 @@ const ShadchanDashboard: React.FC<ShadchanDashboardProps> = ({ profiles: allProf
         }
 
         setShadchans(allShadchans || []);
-        setNotifications(notifsData || []);
       } catch (e) {
         console.error("Failed to load dashboard data", e);
       } finally {
@@ -511,24 +482,7 @@ const ShadchanDashboard: React.FC<ShadchanDashboardProps> = ({ profiles: allProf
   useEffect(() => {
     if (matches.length > 0) calculateInsights();
   }, [matches, profiles]);
-  useEffect(() => {
-    // Subscribe to notifications
-    const notifChannel = supabase
-      .channel('public:notifications')
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'notifications' },
-        (payload) => {
-          setNotifications(prev => [payload.new, ...prev].slice(0, 50));
-          success("Nouvelle notification reçue");
-        }
-      )
-      .subscribe();
 
-    return () => {
-      supabase.removeChannel(notifChannel);
-    };
-  }, []);
 
   const handleImageUpload = async (file: File) => {
     setIsUploading(true);
@@ -649,12 +603,6 @@ const ShadchanDashboard: React.FC<ShadchanDashboardProps> = ({ profiles: allProf
       logActivity('MATCH_STATUS', description);
 
       // For meeting/dating, we might show a confetti if it's a first meeting!
-      if (newStatus === MatchStatus.DATING) {
-        api.createNotification({
-          type: 'MATCH_ALERT',
-          content: `Étape importante ! ${boy?.firstName} & ${girl?.firstName} sont maintenant en état: ${newStatus}`
-        }).catch(console.error);
-      }
     }
   };
 
@@ -1168,66 +1116,7 @@ const ShadchanDashboard: React.FC<ShadchanDashboardProps> = ({ profiles: allProf
             </h2>
           </div>
           <div className="flex items-center gap-2 md:gap-4">
-            {/* Notification Center */}
-            <div className="relative">
-              <button
-                onClick={() => setShowNotificationCenter(!showNotificationCenter)}
-                className={`p-3 rounded-xl transition-all relative group ${showNotificationCenter ? 'bg-wedding-navy text-wedding-gold shadow-xl' : 'text-wedding-navy/40 hover:text-wedding-navy hover:bg-wedding-navy/5'}`}
-              >
-                <Bell className="w-5 h-5" />
-                {unreadNotificationsCount > 0 && (
-                  <span className="absolute top-2 right-2 w-4 h-4 bg-red-500 text-white text-[8px] font-bold flex items-center justify-center rounded-full border-2 border-white animate-bounce-subtle">
-                    {unreadNotificationsCount}
-                  </span>
-                )}
-              </button>
 
-              {showNotificationCenter && (
-                <>
-                  <div className="fixed inset-0 z-40 bg-transparent" onClick={() => setShowNotificationCenter(false)} />
-                  <div className="absolute right-0 mt-4 w-80 md:w-96 glass-card border-wedding-navy/5 shadow-2xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-4 duration-300">
-                    <div className="p-4 bg-wedding-navy text-wedding-gold flex items-center justify-between">
-                      <h3 className="text-[10px] font-bold uppercase tracking-widest">Notifications</h3>
-                      <div className="flex gap-3">
-                        {unreadNotificationsCount > 0 && (
-                          <button
-                            onClick={handleMarkAllNotificationsRead}
-                            className="text-[9px] font-bold uppercase tracking-tighter hover:underline"
-                          >
-                            Tout marquer lu
-                          </button>
-                        )}
-                        <button onClick={() => setShowNotificationCenter(false)} className="hover:text-white transition-colors">
-                          <X className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </div>
-                    <div className="max-h-[400px] overflow-y-auto custom-scrollbar">
-                      {notifications.length === 0 ? (
-                        <div className="p-10 text-center opacity-40">
-                          <Bell className="w-10 h-10 mx-auto mb-3" />
-                          <p className="text-[10px] font-bold tracking-widest uppercase">Aucune notification</p>
-                        </div>
-                      ) : (
-                        notifications.map(notif => (
-                          <div
-                            key={notif.id}
-                            onClick={() => handleMarkNotificationRead(notif.id)}
-                            className={`p-4 border-b border-wedding-navy/5 cursor-pointer transition-colors hover:bg-wedding-navy/5 flex gap-4 ${!notif.read ? 'bg-wedding-gold/5' : ''}`}
-                          >
-                            <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${!notif.read ? 'bg-wedding-gold' : 'bg-transparent'}`}></div>
-                            <div>
-                              <p className="text-[11px] font-bold text-wedding-navy mb-1 leading-tight">{notif.content}</p>
-                              <p className="text-[9px] font-medium text-wedding-navy/40 uppercase tracking-widest">{new Date(notif.createdAt).toLocaleString()}</p>
-                            </div>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
 
             <button
               onClick={() => setShowManualMatchModal(true)}
@@ -1476,7 +1365,6 @@ const ShadchanDashboard: React.FC<ShadchanDashboardProps> = ({ profiles: allProf
 
                 {/* Information Reminder Banner */}
                 {!(shadchanProfile?.name && shadchanProfile.name !== 'Votre Nom' && !shadchanProfile.name.toLowerCase().includes('votre nom') &&
-                  shadchanProfile?.bio && shadchanProfile.bio !== 'Biographie...' &&
                   shadchanProfile?.phone && shadchanProfile?.email) && (
                     <div className="mb-8 p-6 bg-wedding-gold/10 border border-wedding-gold/30 rounded-3xl flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl shadow-wedding-gold/5 animate-in fade-in slide-in-from-top-4 duration-500">
                       <div className="flex items-center gap-4">
@@ -1486,7 +1374,7 @@ const ShadchanDashboard: React.FC<ShadchanDashboardProps> = ({ profiles: allProf
                         <div>
                           <h3 className="text-sm font-bold text-wedding-navy uppercase tracking-widest">Informations Incomplètes</h3>
                           <p className="text-xs text-wedding-navy/60 font-medium mt-1">
-                            Pensez à compléter vos informations (Nom, Bio, Téléphone, Email) dans les <span className="text-wedding-navy font-bold">Paramètres</span>.
+                            Pensez à compléter vos informations (Nom, Téléphone, Email) dans les <span className="text-wedding-navy font-bold">Paramètres</span>.
                           </p>
                         </div>
                       </div>
@@ -1506,14 +1394,14 @@ const ShadchanDashboard: React.FC<ShadchanDashboardProps> = ({ profiles: allProf
                     <div className="flex justify-between items-start">
                       <div>
                         <div className="text-wedding-navy/50 text-[10px] font-bold uppercase tracking-[0.2em]">Candidats</div>
-                        <div className="text-4xl font-serif font-bold text-wedding-navy mt-1">{profiles.length}</div>
+                        <div className="text-4xl font-serif font-bold text-wedding-navy mt-1">{profiles.filter(p => !p.assignedShadchanId).length}</div>
                       </div>
                       <div className="p-3 bg-wedding-navy rounded-xl shadow-lg ring-1 ring-white/10">
                         <Users className="w-5 h-5 text-wedding-gold" />
                       </div>
                     </div>
                     <div className="text-[10px] text-green-600 font-bold uppercase tracking-widest flex items-center gap-1.5">
-                      <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" /> Base Active
+                      <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" /> À contacter
                     </div>
                   </div>
 
@@ -1903,7 +1791,8 @@ const ShadchanDashboard: React.FC<ShadchanDashboardProps> = ({ profiles: allProf
                       </button>
                       {/* Header Profil */}
                       <div className="flex flex-col md:flex-row gap-10 items-start mb-12">
-                        <div className="relative group shrink-0">
+                        <div className="flex flex-col gap-6 shrink-0 w-40">
+                          <div className="relative group">
                           {selectedProfile.imageUrl ? (
                             <img
                               src={selectedProfile.imageUrl}
@@ -1919,7 +1808,31 @@ const ShadchanDashboard: React.FC<ShadchanDashboardProps> = ({ profiles: allProf
                             <Heart className="w-5 h-5 fill-current" />
                           </div>
                         </div>
-                        <div className="flex-1 w-full pt-2">
+
+                        {/* Gallery Thumbnails */}
+                        {selectedProfile.photos && selectedProfile.photos.length > 0 && (
+                          <div className="flex flex-col gap-3">
+                            <p className="text-[9px] font-bold text-wedding-navy/30 uppercase tracking-widest pl-1">Galerie ({selectedProfile.photos.length})</p>
+                            <div className="grid grid-cols-2 gap-3 max-w-[160px]">
+                              {selectedProfile.photos.map((url: string, idx: number) => (
+                                <a 
+                                  key={idx} 
+                                  href={url} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className="relative group aspect-square rounded-2xl overflow-hidden shadow-sm border border-wedding-navy/5 hover:border-wedding-gold/50 transition-all"
+                                >
+                                  <img src={url} alt={`Gallery ${idx}`} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                                    <Eye className="w-4 h-4 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                                  </div>
+                                </a>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1 w-full pt-2">
                           <div className="flex flex-wrap justify-between items-start gap-6">
                             <div>
                               <div className="flex items-center gap-4">
@@ -2711,7 +2624,11 @@ const ShadchanDashboard: React.FC<ShadchanDashboardProps> = ({ profiles: allProf
                           m.createdById !== shadchanProfile?.id
                         );
 
-                        if (isExclusivelyMatched) return false;
+                        const isAssignedToOther = p.assignedShadchanId && 
+                                                 shadchanProfile?.id && 
+                                                 String(p.assignedShadchanId) !== String(shadchanProfile.id);
+
+                        if (isExclusivelyMatched || isAssignedToOther) return false;
 
                         if (chatSearchQuery) return matchesSearch;
                         return hasMessages;

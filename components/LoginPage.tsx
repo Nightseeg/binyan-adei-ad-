@@ -18,8 +18,23 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onCancel }) => {
     const handleLogin = async () => {
         setLoading(true);
         try {
+            // Check if shadchan exists first for specific error message
+            const { api } = await import('../services/dataService');
+            const emailExists = await api.checkShadchanEmailExists(email);
+            if (!emailExists) {
+                setError("Aucun compte Shadchan n'est associé à cette adresse email.");
+                return;
+            }
+
             const { error } = await supabase.auth.signInWithPassword({ email, password });
-            if (error) throw error;
+            if (error) {
+                if (error.status === 400 || error.message?.toLowerCase().includes('credentials')) {
+                    setError("Le mot de passe est incorrect.");
+                } else {
+                    setError(error.message || "Erreur de connexion");
+                }
+                return;
+            }
 
             // Set the security key for RLS policies
             try {
@@ -40,13 +55,10 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onCancel }) => {
 
             // Fetch Shadchan Profile
             try {
-                const { api } = await import('../services/dataService');
                 const shadchanProfile = await api.getShadchanByEmail(email);
                 onLoginSuccess(shadchanProfile);
             } catch (err) {
                 console.error("Error fetching shadchan profile:", err);
-                // Fallback for existing admin or fail?
-                // For now, proceed. If shadchanProfile is missing, Dashboard handles it as "Admin" or default.
                 onLoginSuccess(null);
             }
         } catch (err: any) {
@@ -167,14 +179,18 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onCancel }) => {
                                 >
                                     {loading ? 'Envoi...' : 'Réinitiliser'}
                                 </button>
-
-                                <button
-                                    type="button"
-                                    onClick={() => { setView('login'); setError(''); setMessage(''); }}
-                                    className="w-full text-xs font-bold text-wedding-navy/70 hover:text-wedding-navy uppercase tracking-widest transition-colors mt-4"
-                                >
-                                    Retour à la connexion
-                                </button>
+                                <div className="text-center pt-8 space-y-4">
+                                    <p className="text-xs text-wedding-navy/60 font-medium italic">
+                                        Si vous avez oublié votre mot de passe, Merci de nous contacter à l'adresse email suivante: <span className="text-wedding-navy font-bold">binadeiad@gmail.com</span>
+                                    </p>
+                                    <button
+                                        type="button"
+                                        onClick={() => setView('login')}
+                                        className="text-[10px] font-bold text-wedding-navy/40 uppercase tracking-widest hover:text-wedding-navy transition-colors"
+                                    >
+                                        Retour à la connexion
+                                    </button>
+                                </div>
                             </form>
                         )}
                     </div>

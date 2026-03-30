@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Gender, ReligiousLevel, Profile } from '../types';
 import { v4 as uuidv4 } from 'uuid';
-import { Save, ChevronRight, ChevronLeft, Check, User, Key, Mail, Phone, Calendar, MapPin, Users, Heart, GraduationCap, ClipboardList, Info, Star, Lock, Loader2 } from 'lucide-react';
+import { Save, ChevronRight, ChevronLeft, Check, User, Key, Mail, Phone, Calendar, MapPin, Users, Heart, GraduationCap, ClipboardList, Info, Star, Lock, Loader2, CheckCircle2, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../services/dataService';
 
@@ -20,7 +20,7 @@ const STEPS = [
   { id: 5, title: 'Moi', description: 'Description personnelle' },
   { id: 6, title: 'Recherche', description: 'Profil recherché' },
   { id: 7, title: 'Finalisation', description: 'Accès & Shadchan' },
-  { id: 8, title: 'Engagement', description: 'Don' }
+  { id: 8, title: 'Conditions', description: 'Tarifs & Validation' }
 ];
 
 const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSave, onCancel, initialData, onLoginClick }) => {
@@ -30,7 +30,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSave, onCancel, i
     religiousLevel: ReligiousLevel.YESHIVISH,
     photos: [],
     references: [],
-    agreedToDonation: false // New field for donation agreement
+    agreedToTerms: false // New field for donation agreement
   });
   const [isUploading, setIsUploading] = useState(false);
   const [shadchansList, setShadchansList] = useState<any[]>([]);
@@ -68,6 +68,37 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSave, onCancel, i
     }
   };
 
+  const handlePhotosUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setIsUploading(true);
+    try {
+      const uploadPromises = Array.from(files).map(async (file: File) => {
+        if (file.size > 5 * 1024 * 1024) throw new Error(`${file.name} est trop volumineux`);
+        return await api.uploadFile('profiles', file);
+      });
+
+      const urls = await Promise.all(uploadPromises);
+      setFormData(prev => ({
+        ...prev,
+        photos: [...(prev.photos || []), ...urls]
+      }));
+    } catch (error: any) {
+      console.error("Error uploading photos:", error);
+      alert(error.message || "Erreur lors du téléchargement des photos");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const removePhoto = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      photos: (prev.photos || []).filter((_, i) => i !== index)
+    }));
+  };
+
   const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   const isValidPhone = (phone: string) => /^[\d\s.+()-]{8,20}$/.test(phone);
 
@@ -103,7 +134,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSave, onCancel, i
       case 7:
         return !!(formData.email && formData.accessCode && isValidEmail(formData.email) && formData.ravYeshiva && formData.ravKehila);
       case 8:
-        return !!formData.agreedToDonation;
+        return !!formData.agreedToTerms;
       default:
         return false;
     }
@@ -113,13 +144,14 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSave, onCancel, i
     if (!validateStep(currentStep)) {
       let msg = "Veuillez remplir les champs obligatoires (*) avec des informations valides.";
       if (currentStep === 7 && formData.email && !isValidEmail(formData.email)) msg = "L'adresse email n'est pas valide.";
-      if (currentStep === 8 && !formData.agreedToDonation) msg = "Veuillez confirmer votre engagement pour finaliser votre inscription.";
+      if (currentStep === 8 && !formData.agreedToTerms) msg = "Veuillez confirmer votre engagement pour finaliser votre inscription.";
       alert(msg);
       return;
     }
 
     if (currentStep < STEPS.length) {
       setCurrentStep(prev => prev + 1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
       handleSubmit();
     }
@@ -128,6 +160,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSave, onCancel, i
   const handleBack = () => {
     if (currentStep > 1) {
       setCurrentStep(prev => prev - 1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
@@ -158,11 +191,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSave, onCancel, i
 
     onSave(newProfile);
 
-    // Create a notification for the shadchan
-    api.createNotification({
-      type: 'PROFILE_NEW',
-      content: `Nouveau candidat inscrit : ${newProfile.firstName} ${newProfile.lastName} (${newProfile.city})`
-    }).catch(console.error);
+
   };
 
   const calculateAge = (birthDate: string) => {
@@ -360,7 +389,53 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSave, onCancel, i
                           "
                         />
                         <p className="mt-2 text-[10px] text-wedding-navy/40 font-medium italic">
-                          Une photo aide les Shadchanim à mieux se souvenir de vous. (JPG, PNG. Max 5Mo)
+                          Une photo principale pour votre profil. (JPG, PNG. Max 5Mo)
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Gallery Section */}
+                    <div className="md:col-span-2 border-t border-wedding-navy/5 pt-8 mt-4">
+                      <label className={labelClass}>Galerie Photos (Plus d'images)</label>
+                      <div className="mt-2 space-y-4">
+                        <input
+                          type="file"
+                          multiple
+                          accept="image/*"
+                          onChange={handlePhotosUpload}
+                          className="block w-full text-sm text-wedding-navy/60
+                            file:mr-4 file:py-2.5 file:px-4
+                            file:rounded-xl file:border-0
+                            file:text-[10px] file:font-bold file:uppercase file:tracking-widest
+                            file:bg-wedding-gold/20 file:text-wedding-navy
+                            hover:file:bg-wedding-gold/30
+                            file:cursor-pointer cursor-pointer
+                            transition-all
+                          "
+                        />
+                        
+                        {formData.photos && formData.photos.length > 0 && (
+                          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-4">
+                            {formData.photos.map((url, idx) => (
+                              <div key={idx} className="relative group aspect-square">
+                                <img 
+                                  src={url} 
+                                  alt={`Extra ${idx}`} 
+                                  className="w-full h-full object-cover rounded-xl border border-wedding-navy/5 shadow-sm"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => removePhoto(idx)}
+                                  className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                                >
+                                  <X className="w-3 h-3" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        <p className="text-[10px] text-wedding-navy/40 font-medium italic">
+                          Ajoutez plusieurs photos (voyage, famille, etc.) pour donner une meilleure impression aux Shadchanim.
                         </p>
                       </div>
                     </div>
@@ -1023,42 +1098,73 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSave, onCancel, i
                 <div className="space-y-10 animate-fade-in">
                   <div className="flex items-center gap-5">
                     <div className="w-16 h-16 bg-wedding-navy rounded-2xl flex items-center justify-center shadow-xl">
-                      <Heart className="w-8 h-8 text-wedding-gold" />
+                      <ClipboardList className="w-8 h-8 text-wedding-gold" />
                     </div>
                     <div>
-                      <h3 className="text-3xl font-serif font-bold text-wedding-navy">Engagement</h3>
-                      <p className="text-wedding-navy/40 text-sm font-medium italic">Soutenez Binian Adei Ad.</p>
+                      <h3 className="text-3xl font-serif font-bold text-wedding-navy">Conditions et fonctionnement</h3>
+                      <p className="text-wedding-navy/40 text-sm font-medium italic">Veuillez lire et accepter nos conditions.</p>
                     </div>
                   </div>
 
                   <div className="bg-white p-8 rounded-3xl border border-wedding-navy/10 shadow-sm space-y-6">
-                    <h4 className="text-xl font-serif font-bold text-wedding-navy">Soutien à l'Association</h4>
                     <p className="text-sm text-wedding-navy/80 leading-relaxed">
-                      La plateforme <strong>Binian Adei Ad</strong> est un service gratuit, porté par le dévouement de nos Shadchanim bénévoles qui investissent leur temps et leur énergie pour vous accompagner.
+                      Notre service de Chidouhim propose bien plus qu'une simple mise en relation.
+                      Nous offrons un <strong>accompagnement sérieux, structuré et discret</strong> tout au long du processus, afin d'optimiser les chances de réussite et de permettre à chaque démarche de se dérouler dans les meilleures conditions.
                     </p>
                     <p className="text-sm text-wedding-navy/80 leading-relaxed">
-                      Afin de soutenir notre action et de nous permettre de continuer à développer ce service pour le Klal Yisrael, nous vous demandons de vous engager à faire un don symbolique (à votre discrétion) à l'association <strong>Bnei Yeshivot</strong>.
+                      Nous mettons à disposition une équipe de <strong>Rabbanim et d'Avrékhim expérimentés</strong>, reconnus pour leur sérieux et leur Yirat Chamaïm, qui accompagnent les candidats :
                     </p>
+                    <ul className="space-y-3 pl-4">
+                      <li className="flex items-start gap-3">
+                        <CheckCircle2 className="w-5 h-5 text-wedding-gold shrink-0 mt-0.5" />
+                        <span className="text-sm text-wedding-navy/80"><strong>Avant la proposition :</strong> compréhension du profil, définition des attentes et conseils personnalisés</span>
+                      </li>
+                      <li className="flex items-start gap-3">
+                        <CheckCircle2 className="w-5 h-5 text-wedding-gold shrink-0 mt-0.5" />
+                        <span className="text-sm text-wedding-navy/80"><strong>Pendant le processus :</strong> orientation, suivi et aide à la prise de décision avec recul et sagesse</span>
+                      </li>
+                    </ul>
+                    <p className="text-sm text-wedding-navy/80 leading-relaxed">
+                      Notre objectif est d'offrir un cadre professionnel, responsable et fidèle aux valeurs de la Torah, permettant aux candidats d'avancer avec sérénité et confiance.
+                    </p>
+                  </div>
 
-                    <div className="bg-wedding-navy/5 p-6 rounded-2xl border border-wedding-gold/20 mt-6">
-                      <label className="flex items-start gap-4 cursor-pointer">
-                        <div className="relative flex items-center justify-center h-6 w-6 mt-0.5">
-                          <input
-                            type="checkbox"
-                            className="peer w-6 h-6 appearance-none border-2 border-wedding-navy/20 rounded-lg checked:bg-wedding-navy checked:border-wedding-navy transition-colors cursor-pointer"
-                            checked={!!formData.agreedToDonation}
-                            onChange={(e) => setFormData({ ...formData, agreedToDonation: e.target.checked })}
-                          />
-                          <Check className="w-4 h-4 text-white absolute pointer-events-none opacity-0 peer-checked:opacity-100 transition-opacity" />
-                        </div>
-                        <span className="text-sm font-bold text-wedding-navy">
-                          Je m'engage à faire un don à Bnei Yeshivot pour soutenir l'action des Shadchanim de Binian Adei Ad.*
-                        </span>
-                      </label>
-                      <p className="text-xs text-wedding-navy/70 mt-3 ml-10">
-                        * <a href="https://bneiyeshivot.com/don" target="_blank" rel="noopener noreferrer" className="text-wedding-gold hover:underline font-bold transition-all">Cliquez ici pour accéder à la plateforme de don sécurisée</a>
+                  <div className="bg-wedding-navy/5 p-8 rounded-3xl border border-wedding-gold/20 space-y-5">
+                    <h4 className="text-xl font-serif font-bold text-wedding-navy flex items-center gap-3">
+                      <Star className="w-6 h-6 text-wedding-gold" />
+                      Tarifs
+                    </h4>
+                    <p className="text-sm text-wedding-navy/80 leading-relaxed">
+                      Les frais de participation s'élèvent à <strong className="text-wedding-navy text-base">600 € par côté</strong>, uniquement dans le cas où les candidats se fiancent à l'issue du processus de Chidoukh.
+                    </p>
+                    <p className="text-sm text-wedding-navy/80 leading-relaxed">
+                      <strong>L'inscription et la participation à la plateforme sont sans frais</strong>, et les honoraires ne sont dus qu'en cas de conclusion du Chidoukh par des fiançailles.
+                    </p>
+                    <p className="text-xs text-wedding-navy/60 italic">
+                      (Cerfa en option).
+                    </p>
+                    <div className="bg-white/80 p-4 rounded-2xl border border-wedding-gold/10">
+                      <p className="text-sm text-wedding-gold font-bold">
+                        ✦ Une remise est accordée pour les familles d'Avrékhim.
                       </p>
                     </div>
+                  </div>
+
+                  <div className="bg-white p-6 rounded-3xl border border-wedding-navy/10 shadow-sm">
+                    <label className="flex items-start gap-4 cursor-pointer">
+                      <div className="relative flex items-center justify-center h-6 w-6 mt-0.5">
+                        <input
+                          type="checkbox"
+                          className="peer w-6 h-6 appearance-none border-2 border-wedding-navy/20 rounded-lg checked:bg-wedding-navy checked:border-wedding-navy transition-colors cursor-pointer"
+                          checked={!!formData.agreedToTerms}
+                          onChange={(e) => setFormData({ ...formData, agreedToTerms: e.target.checked })}
+                        />
+                        <Check className="w-4 h-4 text-white absolute pointer-events-none opacity-0 peer-checked:opacity-100 transition-opacity" />
+                      </div>
+                      <span className="text-sm font-bold text-wedding-navy">
+                        J'ai lu et j'accepte les conditions de fonctionnement et les tarifs de Binian Adei Ad. *
+                      </span>
+                    </label>
                   </div>
                 </div>
               )}
