@@ -64,12 +64,6 @@ const ShadchanDashboard: React.FC<ShadchanDashboardProps> = ({ profiles: allProf
   /* New state for detailed unread counts */
   const [unreadCountsByUser, setUnreadCountsByUser] = useState<Record<string, number>>({});
 
-  // Use a ref to access latest profiles and matches without re-triggering useEffects
-  const stateRef = useRef({ profiles, matches, shadchanProfile });
-  useEffect(() => {
-    stateRef.current = { profiles, matches, shadchanProfile };
-  }, [profiles, matches, shadchanProfile]);
-
   const fetchUnreadCount = async () => {
     try {
       const { data: unreadMsgs } = await supabase
@@ -79,40 +73,13 @@ const ShadchanDashboard: React.FC<ShadchanDashboardProps> = ({ profiles: allProf
         .eq('is_read', false);
 
       if (unreadMsgs) {
-        let visibleUnreadCount = 0;
         const counts: Record<string, number> = {};
-        const { profiles: currentProfiles, matches: currentMatches, shadchanProfile: currentShadchanProfile } = stateRef.current;
-        
         unreadMsgs.forEach((msg: any) => {
-          // Check if this profile is visible to this Shadchan
-          const p = currentProfiles.find(profile => profile.id === msg.profile_id);
-          if (!p) return; // Ignore messages from deleted or invisible profiles
-          
-          const isExclusivelyMatched = currentMatches.some(m =>
-            (m.boyId === p.id || m.girlId === p.id) &&
-            m.status !== MatchStatus.ARCHIVED &&
-            m.status !== MatchStatus.DROPPED &&
-            m.createdById !== undefined &&
-            m.createdById !== currentShadchanProfile?.id
-          );
-          
-          const isAssignedToOther = p.assignedShadchanId && 
-                                   currentShadchanProfile?.id && 
-                                   String(p.assignedShadchanId) !== String(currentShadchanProfile.id);
-                                   
-          // Skip if exclusively matched or assigned to another shadchan
-          if (isExclusivelyMatched || isAssignedToOther) return;
-          
           counts[msg.profile_id] = (counts[msg.profile_id] || 0) + 1;
-          visibleUnreadCount++;
         });
-        
         setUnreadCountsByUser(counts);
-        setUnreadCount(visibleUnreadCount);
-      } else {
-        setUnreadCountsByUser({});
-        setUnreadCount(0);
       }
+
     } catch (err) {
       console.error(err);
     }
@@ -966,6 +933,36 @@ const ShadchanDashboard: React.FC<ShadchanDashboardProps> = ({ profiles: allProf
   };
 
   const hasActiveFilters = searchQuery || selectedReligiousLevel || selectedCity || showFavoritesOnly;
+
+  const visibleUnreadCount = React.useMemo(() => {
+    let count = 0;
+    Object.entries(unreadCountsByUser).forEach(([profileId, unread]) => {
+      const p = profiles.find(pr => pr.id === profileId);
+      if (p) {
+        // Exclusivity filter
+        const isExclusivelyMatched = matches.some(m =>
+          (m.boyId === p.id || m.girlId === p.id) &&
+          m.status !== MatchStatus.ARCHIVED &&
+          m.status !== MatchStatus.DROPPED &&
+          m.createdById !== undefined &&
+          m.createdById !== shadchanProfile?.id
+        );
+
+        const isAssignedToOther = p.assignedShadchanId && 
+                                  shadchanProfile?.id && 
+                                  String(p.assignedShadchanId) !== String(shadchanProfile.id);
+
+        if (!isExclusivelyMatched && !isAssignedToOther) {
+          count += unread as number;
+        }
+      }
+    });
+    return count;
+  }, [unreadCountsByUser, profiles, matches, shadchanProfile?.id]);
+
+  useEffect(() => {
+    setUnreadCount(visibleUnreadCount);
+  }, [visibleUnreadCount]);
 
   if (isLoading) {
     return (
